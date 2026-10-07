@@ -48,9 +48,9 @@ def check_and_trigger(recent_predictions: list[dict]) -> dict:
     #   SEQ_LEN            : 창문 길이 (20)
     #   train_and_register : Day2 — 새 모델을 "처음부터" 학습 (scratch)
     #   fine_tune          : Day3 — Production 모델을 "이어받아" 짧게 추가 학습 (warm start)
-    from data.features import load_rows, SEQ_LEN
-    from data.storage import latest_upload
-    from serving_app.train_and_register import fine_tune
+    from data.voltage_preprocessing import load_voltage_data, SEQUENCE_LENGTH, INTERVAL
+    from serving_app.monitoring.drift_detector import WINDOW_SIZE
+    from serving_app.train_and_register import fine_tune, TEST_CSV
 
     logger.info("[INFO] retrain triggered (window=last_21_days)")
 
@@ -62,7 +62,7 @@ def check_and_trigger(recent_predictions: list[dict]) -> dict:
     #       (predict.py [빈칸 6]의 그림: 가격 41개 → 예측 21번)
     #     · 딱 21행만 자르면 build_sequences 가 만들 수 있는 문제는 몇 개일까요?
     #   형태 : 리스트[-(N):] 은 "뒤에서 N개"입니다. ___ 에 N 을 계산식으로 쓰세요. (숫자 41 대신 21 과 상수 이름으로)
-    rows = load_rows(latest_upload())[-(21 + SEQ_LEN):]
+    data = load_voltage_data(TEST_CSV).slice(-(SEQUENCE_LENGTH * INTERVAL - 1 + WINDOW_SIZE), None)
 
     # ════════════════════════════ [빈칸 10] ════════════════════════════
     # 41행으로 재학습을 실행하세요.  (위 import 설명의 두 함수 중 하나)
@@ -72,7 +72,7 @@ def check_and_trigger(recent_predictions: list[dict]) -> dict:
     #       처음부터 학습하면 어떤 모델이 나올까요?
     #     · 3년치로 이미 잘 학습된 Production 모델을 활용하는 방법은 없을까요?
     #   결과 : {"run_id": "...", "rmse": 1.47, "promoted": True, "version": "2"}  (떨어지면 "version" 없음)
-    result = fine_tune(rows)
+    result = fine_tune(data)
 
     # ════════════════════════════ [빈칸 11] ════════════════════════════
     # 새 모델이 "실제로 Production 이 되었을 때만" 성공 로그를 남기도록 조건을 채우세요.
