@@ -57,6 +57,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
+from tensorflow import keras
 
 from data.voltage_preprocessing import prepare_voltage_datasets
 from serving_app.lstm_model import build_model
@@ -64,7 +65,7 @@ from serving_app.lstm_model import build_model
 TRAIN_CSV = "data/SKHY_train.csv"
 TEST_CSV = "data/SKHY_test_answer.csv"
 MODEL_PATH = "serving_app/models/haic_v1.keras"
-BASE_EPOCHS = 2
+BASE_EPOCHS = 30
 BATCH_SIZE = 512
 
 '''
@@ -145,12 +146,20 @@ def main():
     # STEP 6. 모델
     model = build_model()
 
+    early_stop = keras.callbacks.EarlyStopping(
+        monitor="val_loss",         # 검증 loss가
+        patience=5,                 # 5 에폭 연속 개선이 없으면 중단
+        min_delta=1e-6,             # 이보다 작은 개선은 '개선 없음'으로 간주
+        restore_best_weights=True,  # 중단 시 가장 좋았던 에폭의 가중치로 복원
+    )
+
     # STEP 7. 학습 (정답은 이미 표준화된 y_train)
     model.fit(
         d.X_train, d.y_train,
         validation_data=(d.X_valid, d.y_valid),
         epochs=BASE_EPOCHS,
         batch_size=BATCH_SIZE,
+        callbacks=[early_stop],
         verbose=2,
     )
 

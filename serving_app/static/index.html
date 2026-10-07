@@ -151,7 +151,7 @@
       <h2>드리프트 시뮬레이션</h2>
       <p>
         일별 수익률(log return) 기반 랜덤워크로 정상/드리프트 배치를 만들어 <code>/predict/batch-test</code>로 전송합니다.
-        드리프트 배치를 보내면 아래 파이프라인이 감지 → 재학습 → (게이트 통과 시) 재배포까지 진행됩니다.
+        드리프트 배치를 보내면 아래 파이프라인이 감지 → 재학습 → (게이트 통과 시) 재배포까지ç
       </p>
     </div>
     <div class="btn-row">
@@ -352,46 +352,43 @@ function stageHtml(stage, idx, state, statusLabel) {
 async function sendBatch(kind) {
   const statusEl = document.getElementById("drift-status");
   const resultBox = document.getElementById("drift-result");
-  const n = SEQ_LEN + WINDOW_SIZE;
-  const sigma = kind === "drift" ? DRIFT_SIGMA : NORMAL_SIGMA;
-  const prices = randomWalk(n, DEFAULT_BASE_PRICE, sigma);
+  const pill = (level, text) =>
+    `<span class="pill ${level}"><span class="dot"></span>${text}</span>`;
 
-  statusEl.innerHTML = `<span class="pill warn"><span class="dot"></span>전송 중… (fine-tuning이 걸리면 수십 초 걸릴 수 있습니다)</span>`;
+  statusEl.innerHTML = pill("warn", "전송 중… (fine-tuning이 걸리면 수십 초 걸릴 수 있습니다)");
 
   try {
-    const res = await fetch("/predict/batch-test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prices }) });
+    const res = await fetch("/predict/batch-test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind }),
+    });
     const data = await safeJson(res);
+
     if (!res.ok) {
-      const reason = data.__raw
+      statusEl.innerHTML = pill("err", data.__raw
         ? "서버 오류 - model_loader.py 또는 predict.py의 TODO가 아직 구현되지 않았을 수 있습니다"
-        : "오류 (TODO 미구현일 수 있음)";
-      statusEl.innerHTML = `<span class="pill err"><span class="dot"></span>${reason}</span>`;
+        : "오류 (TODO 미구현일 수 있음)");
       showResult(resultBox, { status: res.status, detail: data }, true);
       return;
     }
-    const actual = [];
-    for (let i = 0; i < prices.length - SEQ_LEN; i++) actual.push(prices[i + SEQ_LEN]);
-    const clientRmse = rmseOf(actual, data.predictions || []);
 
-    lastPipelineRun = { driftCheck: data.drift_check || {}, clientRmse, ts: Date.now() / 1000 };
+    const check = data.drift_check || {};
+    lastPipelineRun = { driftCheck: check, clientRmse: null, ts: Date.now() / 1000 };
     renderPipeline();
     loadLogFiles();
 
-    const check = data.drift_check || {};
-    let level = "ok", label = "정상 (드리프트 없음)";
-    if (check.status === "retrain_triggered" && check.promoted) {
-      level = "ok"; label = `재학습 완료 · 새 버전 승격 (rmse=${check.rmse?.toFixed?.(2) ?? check.rmse})`;
-    } else if (check.status === "retrain_triggered" && check.promoted === false) {
-      level = "warn"; label = `드리프트 감지 · 재학습했지만 게이트 미통과 (rmse=${check.rmse?.toFixed?.(2) ?? check.rmse})`;
-    } else if (check.status === "retrain_triggered") {
-      level = "warn"; label = "드리프트 감지 · 재학습 트리거됨";
-    }
-    statusEl.innerHTML = `
-      <span class="pill ${level}"><span class="dot"></span>${label}</span>
-      <span class="pill neutral" style="margin-left:6px;">클라이언트 계산 RMSE: $${clientRmse != null ? clientRmse.toFixed(2) : "-"}</span>`;
+    const r = check.rmse?.toFixed?.(2) ?? check.rmse;
+    const [level, label] =
+      check.status !== "retrain_triggered" ? ["ok", "정상 (드리프트 없음)"]
+      : check.promoted                     ? ["ok", `재학습 완료 · 새 버전 승격 (rmse=${r})`]
+      : check.promoted === false           ? ["warn", `드리프트 감지 · 재학습했지만 게이트 미통과 (rmse=${r})`]
+      :                                      ["warn", "드리프트 감지 · 재학습 트리거됨"];
+
+    statusEl.innerHTML = pill(level, label);
     showResult(resultBox, data, false);
   } catch (e) {
-    statusEl.innerHTML = `<span class="pill err"><span class="dot"></span>연결 실패</span>`;
+    statusEl.innerHTML = pill("err", "연결 실패");
     showResult(resultBox, "요청 실패: " + e.message, true);
   }
 }

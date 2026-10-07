@@ -19,7 +19,7 @@
 
 ■ 이 파일의 빈칸 : [빈칸 7] compute_rmse   [빈칸 8] is_drift
 """
-RMSE_THRESHOLD = 4.00  # 이보다 많이 틀리면 드리프트
+RMSE_THRESHOLD = 0.012 # 이보다 많이 틀리면 드리프트
 WINDOW_SIZE = 21       # 최근 21건을 봅니다
 
 

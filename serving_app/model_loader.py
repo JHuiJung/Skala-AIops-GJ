@@ -33,7 +33,7 @@
 import os
 import time
 
-from data.features import HAICScaler
+from data.voltage_preprocessing import SEQUENCE_LENGTH
 
 LOCAL_MODEL_PATH = "serving_app/models/haic_v1.keras"
 SCALER_PATH = "serving_app/models/scaler.pkl"
@@ -48,12 +48,11 @@ class LoadedModel:
     local 모델이든 MLflow 모델이든 이 상자에 담으면 똑같은 방법(predict_one)으로 쓸 수 있습니다.
     """
 
-    def __init__(self, keras_model, scaler: HAICScaler, version: str):
+    def __init__(self, keras_model, version: str):
         self._keras_model = keras_model
-        self.scaler = scaler
         self.version = version
 
-    def predict_one(self, sequence: list[dict]) -> float:
+    def predict_one(self, sequence) -> float:
         """
         20일치 데이터로 다음날 종가 1개를 예측합니다.
         받는 것  : sequence = [{"close": 160.0, "volume": 1200000}, ... 20개]  (오래된 날 → 최근 날)
@@ -71,13 +70,11 @@ class LoadedModel:
         #   생각해 볼 질문
         #     · 이 모델은 학습할 때 어떤 도구로 입력을 0~1로 바꿨을까요? (data/features.py 의 build_sequences 참고)
         #     · 서버에서 다른 방법으로 바꾸거나, 아예 안 바꾸고 넣으면 어떻게 될까요?
-        scaled = [self.scaler.transform_point(p["close"], p["volume"]) for p in sequence]
-
         # ② 입력 모양 맞추기 — 모델은 "문제 여러 개"를 받으므로 1개라도 [ ]로 감쌉니다. (1, 20, 2)
-        x = np.array([scaled], dtype="float32")  # (1, SEQ_LEN, 2)
+        x = np.asarray(sequence, dtype="float32").reshape(1, SEQUENCE_LENGTH, 1)  # (1, 150, 1)
 
         # ③ 예측 — 결과가 [[0.47]] 처럼 2겹이라 [0][0] 으로 숫자만 꺼냅니다. (아직 0~1 범위)
-        pred_scaled = float(self._keras_model.predict(x, verbose=0)[0][0])
+        pred = float(self._keras_model.predict(x, verbose=0)[0][0])
 
         # ════════════════════════ [빈칸 3]  ④ 달러로 복원 ════════════════════════
         # 사용자에게 돌려줄 값을 만드는 스케일러 도구 이름을 채우세요. (파일 위 "도구" 목록에서 고르기)
@@ -85,7 +82,7 @@ class LoadedModel:
         #   생각해 볼 질문
         #     · pred_scaled 는 0.47 같은 값입니다. 이대로 응답하면 사용자는 무엇을 보게 될까요?
         #     · train_baseline_v1.py 의 STEP 7(시험 보기)에서는 예측값을 어떻게 처리했나요?
-        return self.scaler.inverse_close(pred_scaled)
+        return pred
 
 
 # ═══════════════════════════════ 어디서 불러올까? ═══════════════════════════════
@@ -95,8 +92,7 @@ def _load_from_local() -> LoadedModel:
     from tensorflow import keras
 
     keras_model = keras.models.load_model(LOCAL_MODEL_PATH)
-    scaler = HAICScaler.load(SCALER_PATH)
-    return LoadedModel(keras_model=keras_model, scaler=scaler, version="v1-local")
+    return LoadedModel(keras_model=keras_model, version="v1-local")
 
 
 def _load_from_mlflow() -> LoadedModel:
@@ -122,8 +118,7 @@ def _load_from_mlflow() -> LoadedModel:
     #     · 모델은 MLflow 에서 가져왔습니다. 스케일러도 MLflow 에서 가져와야 할까요, 로컬 scaler.pkl 을 써야 할까요?
     #     · Day2 모델은 어떤 스케일러로 0~1 변환한 데이터로 학습했나요? (train_and_register.py 의 SCALER_PATH 참고)
     #     · 스케일러를 여기서 새로 fit 하면 어떤 일이 생길까요?
-    scaler = HAICScaler.load(SCALER_PATH)
-    return LoadedModel(keras_model=keras_model, scaler=scaler, version="production")
+    return LoadedModel(keras_model=keras_model, version="production")
 
 
 def _load_model() -> LoadedModel:

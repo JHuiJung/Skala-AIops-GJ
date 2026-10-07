@@ -38,6 +38,7 @@ N_FEATURES = 1  # Input_V
 
 
 def build_model() -> keras.Model:
+
     model = keras.Sequential(
         [
             keras.layers.Input(shape=(SEQUENCE_LENGTH, N_FEATURES)),
