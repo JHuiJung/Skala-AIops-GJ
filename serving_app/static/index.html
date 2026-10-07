@@ -128,7 +128,7 @@
 
 <div class="page">
 
-  <!-- ================= 데이터 업로드 ================= -->
+  <!-- ================= 데이터 업로드 =================
   <div class="card">
     <div class="section-head">
       <h2>HAIC 데이터 업로드</h2>
@@ -140,6 +140,23 @@
     </div>
     <div class="upload-row">
       <input type="file" id="upload-input" accept=".csv" />
+      <button class="btn primary" onclick="uploadFile()">업로드</button>
+    </div>
+    <div id="upload-status" style="margin-top:10px;"></div>
+  </div>
+  -->
+    <!-- ================= SKHY 전압 데이터 업로드 ================= -->
+  <div class="card">
+    <div class="section-head">
+      <h2>SKHY 전압 데이터 업로드</h2>
+      <p>
+        <code>TIME, Input_V, E</code> 컬럼만 있는 CSV를 업로드하세요(최소 650행).
+        파일은 <code>data/uploads/</code>에 저장되며, 후속 드리프트 판정·재학습 시 가장 최근 파일을 사용합니다.
+        업로드 자체는 전처리나 재학습을 실행하지 않습니다.
+      </p>
+    </div>
+    <div class="upload-row">
+      <input type="file" id="upload-input" accept=".csv,text/csv" />
       <button class="btn primary" onclick="uploadFile()">업로드</button>
     </div>
     <div id="upload-status" style="margin-top:10px;"></div>
@@ -264,7 +281,7 @@ function showResult(el, obj, isError = false) {
   el.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
 }
 
-/* ===================== 데이터 업로드 ===================== */
+/* ===================== 데이터 업로드 =====================
 async function uploadFile() {
   const input = document.getElementById("upload-input");
   const statusEl = document.getElementById("upload-status");
@@ -283,6 +300,57 @@ async function uploadFile() {
       return;
     }
     statusEl.innerHTML = `<span class="pill ok"><span class="dot"></span>업로드 완료: ${data.filename} (${data.rows}행)</span>`;
+  } catch (e) {
+    statusEl.innerHTML = `<span class="pill err"><span class="dot"></span>요청 실패: ${e.message}</span>`;
+  }
+}
+*/
+
+function formatVoltage(value) {
+  return Number(value).toPrecision(6);
+}
+
+async function loadUploadStatus(successMessage = "") {
+  const statusEl = document.getElementById("upload-status");
+  const { ok, data } = await getJSON("/data/status");
+  if (!ok || !data) {
+    statusEl.innerHTML = `<span class="pill err"><span class="dot"></span>업로드 상태 조회 실패</span>`;
+    return;
+  }
+  if (!data.exists) {
+    statusEl.innerHTML = `<span class="pill neutral"><span class="dot"></span>업로드된 전압 CSV가 없습니다</span>`;
+    return;
+  }
+
+  const prefix = successMessage ? `${successMessage}<br>` : "";
+  statusEl.innerHTML = `${prefix}<span class="pill ok"><span class="dot"></span>
+    ${data.filename} · ${data.rows}행 ·
+    TIME ${formatVoltage(data.start_time)} ~ ${formatVoltage(data.end_time)} ·
+    Input_V ${formatVoltage(data.min_input_v)} ~ ${formatVoltage(data.max_input_v)} ·
+    E ${formatVoltage(data.min_e)} ~ ${formatVoltage(data.max_e)}
+  </span>`;
+}
+
+async function uploadFile() {
+  const input = document.getElementById("upload-input");
+  const statusEl = document.getElementById("upload-status");
+  if (!input.files.length) {
+    statusEl.innerHTML = `<span class="pill warn"><span class="dot"></span>파일을 먼저 선택하세요</span>`;
+    return;
+  }
+
+  const form = new FormData();
+  form.append("file", input.files[0]);
+  statusEl.innerHTML = `<span class="pill neutral"><span class="dot"></span>업로드 중…</span>`;
+
+  try {
+    const res = await fetch("/data/upload", { method: "POST", body: form });
+    const data = await safeJson(res);
+    if (!res.ok) {
+      statusEl.innerHTML = `<span class="pill err"><span class="dot"></span>${data.detail || "업로드 실패"}</span>`;
+      return;
+    }
+    await loadUploadStatus(`업로드 완료: ${data.filename} (${data.rows}행)`);
   } catch (e) {
     statusEl.innerHTML = `<span class="pill err"><span class="dot"></span>요청 실패: ${e.message}</span>`;
   }
