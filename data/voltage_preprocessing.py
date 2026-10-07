@@ -53,7 +53,6 @@ class PreprocessedVoltageData:
     y_valid: np.ndarray
     X_test: np.ndarray | None
     y_test: np.ndarray | None
-    scaler: "VoltageScaler | None"
 
 
 def _parse_float(value: str | None, column: str, row_number: int) -> float:
@@ -130,55 +129,6 @@ def split_train_validation(
         raise ValueError("train_ratio는 0과 1 사이여야 합니다.")
     split_index = int(len(data) * train_ratio)
     return data.slice(None, split_index), data.slice(split_index, None)
-
-
-class VoltageScaler:
-    """학습 구간의 평균·표준편차로 Input_V와 E를 각각 표준화한다."""
-
-    def __init__(self) -> None:
-        self.input_mean: float | None = None
-        self.input_std: float | None = None
-        self.target_mean: float | None = None
-        self.target_std: float | None = None
-
-    def fit(self, train_data: VoltageData) -> "VoltageScaler":
-        if train_data.target_e is None:
-            raise ValueError("스케일러 fit에는 E 타깃이 필요합니다.")
-
-        self.input_mean = float(train_data.input_v.mean())
-        self.input_std = float(train_data.input_v.std())
-        self.target_mean = float(train_data.target_e.mean())
-        self.target_std = float(train_data.target_e.std())
-
-        if self.input_std == 0:
-            raise ValueError("학습 데이터의 Input_V 표준편차가 0입니다.")
-        if self.target_std == 0:
-            raise ValueError("학습 데이터의 E 표준편차가 0입니다.")
-        return self
-
-    def _check_fitted(self) -> None:
-        if any(
-            value is None
-            for value in (
-                self.input_mean,
-                self.input_std,
-                self.target_mean,
-                self.target_std,
-            )
-        ):
-            raise RuntimeError("VoltageScaler.fit()을 먼저 호출해야 합니다.")
-
-    def transform_input(self, values: np.ndarray) -> np.ndarray:
-        self._check_fitted()
-        return (np.asarray(values, dtype=np.float64) - self.input_mean) / self.input_std
-
-    def transform_target(self, values: np.ndarray) -> np.ndarray:
-        self._check_fitted()
-        return (np.asarray(values, dtype=np.float64) - self.target_mean) / self.target_std
-
-    def inverse_target(self, values: np.ndarray) -> np.ndarray:
-        self._check_fitted()
-        return np.asarray(values, dtype=np.float64) * self.target_std + self.target_mean
 
 
 def build_sequences(
@@ -271,5 +221,4 @@ def prepare_voltage_datasets(
         y_valid=y_valid,
         X_test=X_test,
         y_test=y_test,
-        scaler=None,
     )
