@@ -18,7 +18,7 @@ import numpy as np
 
 SEQUENCE_LENGTH = 150
 INTERVAL = 3
-STRIDE = 1
+STRIDE = 10
 TRAIN_RATIO = 0.9
 
 

@@ -16,14 +16,14 @@ import pickle
 SEQ_LEN = 20  # LSTM 입력 윈도우 길이 (거래일 수) - 약 1개월치 거래일
 
 
-def load_rows(csv_path: str = "data/haic_prices.csv") -> list[dict]:
+def load_rows(csv_path: str = "data/SKHY_train.csv") -> list[dict]:
     with open(csv_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = [
             {
-                "Date": r["Date"],
-                "Close": float(r["Close"]),
-                "Volume": float(r["Volume"]),
+                "TIME": r["TIME"],
+                "Input_V": float(r["Input_V"]),
+                "E": float(r["E"]),
             }
             for r in reader
         ]
@@ -86,21 +86,20 @@ class HAICScaler:
             scaler.__dict__.update(pickle.load(f))
         return scaler
 
-
-def build_sequences(rows: list[dict], scaler: HAICScaler, seq_len: int = SEQ_LEN):
+def build_sequences(rows: list[dict], seq_len: int = SEQ_LEN):
     """
-    rows(시간순 OHLCV)에서 (SEQ_LEN, 2) 크기의 정규화된 입력 시퀀스와
-    다음날 종가(정규화 전 실값) 타깃을 만든다.
+    rows(시간순)에서 (SEQ_LEN, 1) 크기의 Input_V 입력 시퀀스와
+    그 바로 다음 시점의 E 타깃을 만든다. (스케일링 없음, 원본 값 그대로)
 
-    반환: X (n_samples, seq_len, 2), y (n_samples,) - y는 스케일 안 된 실제 종가
+    반환: X (n_samples, seq_len, 1), y (n_samples,)
     """
-    scaled_points = [scaler.transform_point(r["Close"], r["Volume"]) for r in rows]
-    closes = [r["Close"] for r in rows]
+    inputs = [[r["Input_V"]] for r in rows]   # 한 시점 = [Input_V] (feature 1개)
+    es = [r["E"] for r in rows]
 
     X, y = [], []
     for i in range(len(rows) - seq_len):
-        X.append(scaled_points[i : i + seq_len])
-        y.append(closes[i + seq_len])
+        X.append(inputs[i : i + seq_len])     # Input_V 윈도우 20개
+        y.append(es[i + seq_len])             # 윈도우 바로 다음 시점의 E
     return X, y
 
 

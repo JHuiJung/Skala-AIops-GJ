@@ -7,17 +7,40 @@ HAIC 다음날 종가 예측용 LSTM 아키텍처 (Day1 baseline과 Day2 MLflow 
 Dense 1층 구조를 택했습니다 - 이 정도 크기(파라미터 약 1.6만 개)는 CPU로 50 epoch을
 학습해도 수십 초~1분 내외면 끝납니다.
 """
+"""
 from tensorflow import keras
 
 from data.features import SEQ_LEN
 
-N_FEATURES = 2  # (close, volume)
+N_FEATURES = 1  # (close, volume)
 
 
 def build_model() -> keras.Model:
     model = keras.Sequential(
         [
             keras.layers.Input(shape=(SEQ_LEN, N_FEATURES)),
+            keras.layers.LSTM(32, return_sequences=True),
+            keras.layers.LSTM(32, return_sequences=True),
+            keras.layers.LSTM(16),
+            keras.layers.Dense(16, activation="relu"),
+            keras.layers.Dense(1),
+        ]
+    )
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3), loss="mse")
+    return model
+"""
+
+from tensorflow import keras
+
+from data.voltage_preprocessing import SEQUENCE_LENGTH
+
+N_FEATURES = 1  # Input_V
+
+
+def build_model() -> keras.Model:
+    model = keras.Sequential(
+        [
+            keras.layers.Input(shape=(SEQUENCE_LENGTH, N_FEATURES)),
             keras.layers.LSTM(32, return_sequences=True),
             keras.layers.LSTM(32, return_sequences=True),
             keras.layers.LSTM(16),

@@ -29,6 +29,7 @@
 
 ■ 이 파일의 빈칸 : [빈칸 1]
 """
+"""
 import os
 import sys
 
@@ -48,13 +49,35 @@ from serving_app.lstm_model import build_model
 MODEL_PATH = "serving_app/models/haic_v1.keras"
 SCALER_PATH = "serving_app/models/scaler.pkl"
 BASE_EPOCHS = 100  # 전체 문제를 100번 반복해서 학습
+"""
 
+import os
+import sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import numpy as np
+
+from data.voltage_preprocessing import prepare_voltage_datasets
+from serving_app.lstm_model import build_model
+
+TRAIN_CSV = "data/SKHY_train.csv"
+TEST_CSV = "data/SKHY_test_answer.csv"
+MODEL_PATH = "serving_app/models/haic_v1.keras"
+BASE_EPOCHS = 2
+BATCH_SIZE = 512
+
+'''
 def rmse(y_true, y_pred) -> float:
     """예측이 실제보다 '평균 몇 달러' 틀렸는지 계산합니다."""
     return (sum((a - b) ** 2 for a, b in zip(y_true, y_pred)) / len(y_true)) ** 0.5
+'''
+def rmse(y_true, y_pred) -> float:
+    return float(np.sqrt(np.mean((np.asarray(y_true) - np.asarray(y_pred)) ** 2)))
 
 
+
+'''
 def main():
     import numpy as np
 
@@ -65,9 +88,9 @@ def main():
     #   종가(100~200)와 거래량(100만 단위)은 크기 차이가 너무 커서, 그대로 넣으면
     #   LSTM이 큰 숫자(거래량)에만 끌려갑니다. 그래서 둘 다 0~1로 맞춰 줍니다.
     #   스케일러는 "여기서 딱 한 번만" fit 하고 저장합니다. 서버·Day2·Day3 모두 이 파일을 씁니다.
-    scaler = HAICScaler().fit(rows)
-    scaler.save(SCALER_PATH)
-    print(f"scaler fit on {len(rows)}행 -> {SCALER_PATH}")
+    #scaler = HAICScaler().fit(rows)
+    #scaler.save(SCALER_PATH)
+    #print(f"scaler fit on {len(rows)}행 -> {SCALER_PATH}")
 
     # STEP 3. 문제(X)와 정답(y) 만들기
     #   "최근 20일치 (종가, 거래량)을 보고 → 21일째 종가를 맞혀라" 는 문제를 하루씩 밀며 만듭니다.
@@ -112,6 +135,35 @@ def main():
             "※ 참고: 이 RMSE는 Day1 로컬 모델이며 배포 게이트($4.00) 통과 여부는 "
             "Day2에서 MLflow로 다시 정식 검증합니다."
         )
+'''
+
+def main():
+    # STEP 1~5를 한 번에: 로드 → 90/10 분할 → 표준화(train으로 fit) → 시퀀스 생성
+    d = prepare_voltage_datasets(TRAIN_CSV, TEST_CSV)
+    print(f"X_train {d.X_train.shape}, X_valid {d.X_valid.shape}, X_test {d.X_test.shape}")
+
+    # STEP 6. 모델
+    model = build_model()
+
+    # STEP 7. 학습 (정답은 이미 표준화된 y_train)
+    model.fit(
+        d.X_train, d.y_train,
+        validation_data=(d.X_valid, d.y_valid),
+        epochs=BASE_EPOCHS,
+        batch_size=BATCH_SIZE,
+        verbose=2,
+    )
+
+       # STEP 6. 평가 - 복원 없이 바로 비교
+    for name, X, y in [("valid", d.X_valid, d.y_valid), ("test", d.X_test, d.y_test)]:
+        pred = model.predict(X, verbose=0)
+        print(f"{name} RMSE = {rmse(y, pred):.6f}")
+
+
+    # STEP 9. 저장
+    model.save(MODEL_PATH)
+    print(f"saved -> {MODEL_PATH}")
+
 
 
 if __name__ == "__main__":
