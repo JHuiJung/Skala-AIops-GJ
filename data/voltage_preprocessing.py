@@ -4,7 +4,7 @@
 입력보다 두 행 뒤의 ``E`` 전압이다. 예를 들어 첫 샘플은
 ``Input_V[0, 3, ..., 447]``로 ``E[449]``를 예측한다.
 
-스케일러는 학습 구간으로만 fit하고 검증·테스트에 재사용한다.
+입력과 타깃은 스케일링하지 않고 원본 전압값을 그대로 사용한다.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class VoltageData:
 
 @dataclass(frozen=True)
 class PreprocessedVoltageData:
-    """학습·검증·테스트 시퀀스와 학습 통계로 fit한 스케일러."""
+    """원본 전압값으로 구성한 학습·검증·테스트 시퀀스."""
 
     X_train: np.ndarray
     y_train: np.ndarray
@@ -53,7 +53,7 @@ class PreprocessedVoltageData:
     y_valid: np.ndarray
     X_test: np.ndarray | None
     y_test: np.ndarray | None
-    scaler: "VoltageScaler"
+    scaler: "VoltageScaler | None"
 
 
 def _parse_float(value: str | None, column: str, row_number: int) -> float:
@@ -230,22 +230,21 @@ def prepare_voltage_datasets(
     interval: int = INTERVAL,
     stride: int = STRIDE,
 ) -> PreprocessedVoltageData:
-    """파일 로드부터 표준화·시퀀스 생성까지 한 번에 수행한다."""
+    """파일을 로드하고 원본 전압값으로 시퀀스를 생성한다."""
 
     raw_train = load_voltage_data(train_path, require_target=True)
     train_data, valid_data = split_train_validation(raw_train, train_ratio)
-    scaler = VoltageScaler().fit(train_data)
 
     X_train, y_train = build_sequences(
-        scaler.transform_input(train_data.input_v),
-        scaler.transform_target(train_data.target_e),
+        train_data.input_v,
+        train_data.target_e,
         sequence_length=sequence_length,
         interval=interval,
         stride=stride,
     )
     X_valid, y_valid = build_sequences(
-        scaler.transform_input(valid_data.input_v),
-        scaler.transform_target(valid_data.target_e),
+        valid_data.input_v,
+        valid_data.target_e,
         sequence_length=sequence_length,
         interval=interval,
         stride=stride,
@@ -255,14 +254,9 @@ def prepare_voltage_datasets(
     y_test = None
     if test_path is not None:
         test_data = load_voltage_data(test_path, require_target=test_has_targets)
-        scaled_test_target = (
-            None
-            if test_data.target_e is None
-            else scaler.transform_target(test_data.target_e)
-        )
         X_test, y_test = build_sequences(
-            scaler.transform_input(test_data.input_v),
-            scaled_test_target,
+            test_data.input_v,
+            test_data.target_e,
             sequence_length=sequence_length,
             interval=interval,
             stride=stride,
@@ -277,5 +271,5 @@ def prepare_voltage_datasets(
         y_valid=y_valid,
         X_test=X_test,
         y_test=y_test,
-        scaler=scaler,
+        scaler=None,
     )
