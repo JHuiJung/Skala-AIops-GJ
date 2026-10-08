@@ -34,10 +34,11 @@ import os
 import time
 
 from data.voltage_preprocessing import SEQUENCE_LENGTH
+from serving_app.mlflow_config import MODEL_NAME, configure_mlflow
 
 LOCAL_MODEL_PATH = "serving_app/models/haic_v1.keras"
 SCALER_PATH = "serving_app/models/scaler.pkl"
-MLFLOW_MODEL_URI = "models:/HAIC_Predictor/Production"  # "models:/<모델 이름>/<단계>" 형식
+MLFLOW_MODEL_URI = f"models:/{MODEL_NAME}/Production"
 
 _model_cache = None  # 한 번 불러온 모델을 담아 두는 상자 (처음엔 비어 있음 = None)
 
@@ -105,6 +106,7 @@ def _load_from_mlflow() -> LoadedModel:
       2) MODEL_SOURCE=mlflow uvicorn serving_app.main:app --host 0.0.0.0 --port 8077
       3) /predict 응답의 model_version 이 "production" 이고 predicted_close 가 달러 값이면 성공
     """
+    configure_mlflow()
     import mlflow.tensorflow
 
     # 모델 : MLflow 레지스트리에서 "Production" 단계 모델을 불러옵니다. (완성)

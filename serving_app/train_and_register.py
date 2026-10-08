@@ -32,6 +32,7 @@ from data.voltage_preprocessing import (
     split_train_validation,
 )
 from serving_app.lstm_model import build_model
+from serving_app.mlflow_config import MODEL_NAME, configure_mlflow
 
 # 시드 고정: LSTM 가중치 초기화가 랜덤이라 시드 없이는 실행마다 RMSE가 흔들려
 # 게이트 통과 여부가 운에 좌우됩니다. numpy/tensorflow/python random을 한 번에 고정합니다.
@@ -42,8 +43,6 @@ TRAIN_CSV = "data/SKHY_train.csv"
 TEST_CSV = "data/SKHY_test_answer.csv"  # 게이트 평가용 (학습에 쓰지 않은 구간)
 
 RMSE_GATE = 0.012  # drift_detector.RMSE_THRESHOLD와 같은 기준 (E 전압 단위)
-MODEL_NAME = "HAIC_Predictor"
-
 BASE_EPOCHS = 30  # early stopping이 있으므로 "최대" 에폭
 BASE_BATCH_SIZE = 512
 EARLY_STOP_PATIENCE = 5
@@ -63,7 +62,12 @@ def _register_if_gate_passed(model, run_id: str, score: float) -> dict:
     result = {"run_id": run_id, "rmse": score, "promoted": False}
     if score <= RMSE_GATE:
         v = mlflow.register_model(f"runs:/{run_id}/model", MODEL_NAME)
-        MlflowClient().transition_model_version_stage(name=MODEL_NAME, version=v.version, stage="Production")
+        MlflowClient().transition_model_version_stage(
+            name=MODEL_NAME,
+            version=v.version,
+            stage="Production",
+            archive_existing_versions=True,
+        )
         result["promoted"] = True
         result["version"] = v.version
         print(f"[GATE PASSED] rmse={score:.6f} -> {MODEL_NAME} v{v.version} promoted to Production")
@@ -78,6 +82,7 @@ def train_and_register(train_data: VoltageData | None = None) -> dict:
     train_data를 지정하지 않으면 SKHY_train.csv를 읽습니다. 앞 90%로 학습, 뒤 10%로 early stopping용
     검증을 하고, 게이트 점수는 SKHY_test_answer.csv(한 번도 쓰지 않은 구간)로 계산합니다.
     """
+    configure_mlflow(select_experiment=True)
     if train_data is None:
         train_data = load_voltage_data(TRAIN_CSV, require_target=True)
     train, valid = split_train_validation(train_data)
@@ -125,6 +130,7 @@ def fine_tune(data: VoltageData) -> dict:
     data는 연속된 파형 구간이어야 하며, stride=1로 잘라 가능한 모든 샘플을 만듭니다.
     앞 80%로 학습하고 뒤 20%로 게이트 점수를 계산합니다 (시간 순서 유지).
     """
+    configure_mlflow(select_experiment=True)
     X, y = build_sequences(data.input_v, data.target_e, stride=1)
     X, y = X.astype("float32"), y.astype("float32")
     if len(X) < 2:
