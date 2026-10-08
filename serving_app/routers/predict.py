@@ -24,7 +24,7 @@ from data.voltage_preprocessing import (
 )
 from serving_app import model_loader
 from serving_app.schemas import PredictRequest, PredictResponse, BatchTestRequest, BatchTestResponse
-from serving_app.monitoring.drift_detector import WINDOW_SIZE
+from serving_app.monitoring.drift_detector import WINDOW_SIZE, compute_rmse
 from serving_app.monitoring.retrain_trigger import check_and_trigger
 
 router = APIRouter()
@@ -115,17 +115,24 @@ def batch_test(req: BatchTestRequest):
 
     model = model_loader.get_model()
     predictions: list[float] = []
+    actuals: list[float] = []
 
     for i in range(len(X)):
         pred = model.predict_one(X[i, :, 0])  # Input_V 150개 (슬라이딩은 build_sequences가 이미 처리)
         actual = float(y[i, 0])
         predictions.append(pred)
+        actuals.append(actual)
         recent_predictions.append({"predicted": pred, "actual": actual})
 
     # 최근 21건만 남기기 — 오래된 기록까지 섞이면 "지금" 상태를 판단할 수 없습니다.
     # (recent_predictions = ... 로 쓰면 함수 안의 새 변수가 되므로, [:] 로 목록 내용을 바꿉니다)
     recent_predictions[:] = recent_predictions[-WINDOW_SIZE:]
 
+    # 대시보드 표시용: 판정에 쓰인 최근 21건의 RMSE (21건 미만이면 판정 대기라 None)
+    window_rmse = compute_rmse(recent_predictions) if len(recent_predictions) >= WINDOW_SIZE else None
+
     # 드리프트 판단·재학습은 retrain_trigger.py 가 합니다. 여기서는 넘겨주기만!
     drift_check = check_and_trigger(recent_predictions)
-    return BatchTestResponse(predictions=predictions, drift_check=drift_check)
+    return BatchTestResponse(
+        predictions=predictions, actuals=actuals, window_rmse=window_rmse, drift_check=drift_check
+    )

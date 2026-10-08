@@ -55,4 +55,6 @@ class BatchTestRequest(BaseModel):
 
 class BatchTestResponse(BaseModel):
     predictions: list[float]
+    actuals: list[float]  # 같은 순서의 정답 E (대시보드의 실제 vs 예측 그래프용)
+    window_rmse: float | None = None  # 최근 21건 RMSE, 21건 미만이면 None
     drift_check: dict

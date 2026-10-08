@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>전압 예측 대시보드</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" href="data:," />
     <style>
       :root {
         --bg: #eef1f3;
@@ -1069,13 +1069,13 @@
           </p>
         </details>
         <details id="threshold-help">
-          <summary>0.0120 V 기준</summary>
-          <div class="formula">1.2 V × 1% = 0.0120 V</div>
+          <summary>12 mV 기준</summary>
+          <div class="formula">1.2 V × 1% = 12 mV</div>
           <p>
             DDR4 판정 기준 전압 허용 흔들림을 참고한 프로젝트 운영 기준입니다.
           </p>
           <p>
-            배포 게이트 ≤ 0.0120 V<br />드리프트 &gt; 0.0120 V<br />21건 미만은 판정
+            배포 게이트 ≤ 12 mV<br />드리프트 &gt; 12 mV<br />21건 미만은 판정
             대기
           </p>
         </details>
@@ -1092,7 +1092,7 @@
         </details>
       </section>
       <div class="rail-footer">
-        <div class="mono">SKHY_Predictor</div>
+        <div class="mono">HAIC_Predictor</div>
         <div>서버 확인 · 10초 주기</div>
         <div id="health-time">—</div>
       </div>
@@ -1128,24 +1128,24 @@
         <div class="metric">
           <div class="metric-label">최근 21건 RMSE</div>
           <div class="metric-value num">
-            <span id="rmse">—</span> <small>V</small>
+            <span id="rmse">—</span> <small>mV</small>
           </div>
-          <div class="gauge" aria-label="RMSE 위치 · 0에서 0.0240 V">
+          <div class="gauge" aria-label="RMSE 위치 · 0에서 24mV">
             <div id="gauge-fill"></div>
           </div>
           <div class="gauge-labels">
-            <span>0</span><span>0.0120 V</span><span>0.0240 V</span>
+            <span>0</span><span>12 mV</span><span>24 mV</span>
           </div>
           <p id="rmse-note" class="note">0 / 21건</p>
         </div>
         <div class="metric">
           <div class="metric-label">관리 기준</div>
-          <div class="metric-value num">0.0120 <small>V</small></div>
+          <div class="metric-value num">12 <small>mV</small></div>
           <p class="note">이하 통과 · 초과 감지</p>
           <a
             href="#threshold-help"
             id="threshold-link"
-            aria-label="0.0120 V 기준 근거 보기"
+            aria-label="12mV 기준 근거 보기"
             >ⓘ</a
           >
           <p class="note">1.2 V × 1%</p>
@@ -1231,7 +1231,7 @@
             </div>
             <div class="readout">
               <span class="muted">차이</span
-              ><strong><span id="error-e">—</span> <small>V</small></strong>
+              ><strong><span id="error-e">—</span> <small>mV</small></strong>
             </div>
           </div>
         </section>
@@ -1260,18 +1260,18 @@
           <section class="panel comparison">
             <div class="panel-head">
               <h2>건별 절대 오차</h2>
-              <span id="batch-rmse" class="tag">RMSE — V</span>
+              <span id="batch-rmse" class="tag">RMSE — mV</span>
             </div>
             <div class="legend">
               <span><i class="swatch"></i>절대 오차</span
-              ><span style="color: var(--fail)">┄ 0.0120 V / □ 초과</span>
+              ><span style="color: var(--fail)">┄ 12 mV / □ 초과</span>
             </div>
             <div
               class="plot"
               id="error-plot"
               tabindex="0"
               role="img"
-              aria-label="절대 오차와 0.0120 V 기준선"
+              aria-label="절대 오차와 12mV 기준선"
             >
               <canvas id="errors"></canvas>
               <div class="empty-plot" id="error-empty">배치 실행 대기</div>
@@ -1350,7 +1350,7 @@
       </div>
       <footer class="foot">
         <span id="last-run">배치 측정 대기</span
-        ><span>전압 V · 오차 V · 시간 ps</span>
+        ><span>전압 V · 오차 mV · 시간 ps</span>
       </footer>
     </main>
     <script>
@@ -1364,7 +1364,7 @@
           grid: "#e0e7e9",
           text: "#5d6b72",
         },
-        LIMIT = 0.012; // 드리프트·배포 게이트 기준 (V), 서버 RMSE_THRESHOLD와 같은 값
+        LIMIT = 12;
       const state = {
         rows: [],
         start: 0,
@@ -1728,8 +1728,8 @@
           state.version = r.model_version;
           text("model-version", r.model_version);
           text("predicted-e", fmt(state.pred, 6));
-          const diff = state.pred - state.rows[start + 449].e;
-          text("error-e", (diff > 0 ? "+" : "") + fmt(diff, 4));
+          const diff = (state.pred - state.rows[start + 449].e) * 1000;
+          text("error-e", (diff > 0 ? "+" : "") + fmt(diff));
           message("predict-message", `예측 완료 · ${r.model_version}`);
           drawWave();
           await health();
@@ -1756,7 +1756,7 @@
               : title === "승격 실패"
                 ? "기존 Production 유지"
                 : title === "감지"
-                  ? "0.0120 V 기준 초과"
+                  ? "12 mV 기준 초과"
                   : title === "재학습 중"
                     ? "로그 확인 · 응답 대기"
                     : note,
@@ -1769,18 +1769,18 @@
               : "var(--warn)";
       }
       function renderMetric(r) {
-        const score = r.window_rmse;
-        text("rmse", fmt(score, 4));
-        text("batch-rmse", `RMSE ${fmt(score, 4)} V`);
+        const score = r.window_rmse === null ? null : r.window_rmse * 1000;
+        text("rmse", fmt(score));
+        text("batch-rmse", `RMSE ${fmt(score)} mV`);
         $("gauge-fill").style.width =
-          score === null ? "0" : Math.min((score / (LIMIT * 2)) * 100, 100) + "%";
+          score === null ? "0" : Math.min((score / 24) * 100, 100) + "%";
         $("gauge-fill").style.background =
-          score > LIMIT ? "var(--fail)" : "var(--accent)";
+          score > 12 ? "var(--fail)" : "var(--accent)";
         text(
           "rmse-note",
           score === null
             ? "21건 미만 · 판정 대기"
-            : `${r.predictions.length} / 21건 · 기준의 ${fmt((score / LIMIT) * 100, 1)}%${score > LIMIT * 2 ? " · 표시 범위 초과" : ""}`,
+            : `${r.predictions.length} / 21건 · 기준의 ${fmt((score / 12) * 100, 1)}%${score > 24 ? " · 표시 범위 초과" : ""}`,
         );
         text("last-run", `${clock()} 측정 · 최근 21건`);
       }
@@ -1858,7 +1858,7 @@
         );
         if (d.status === "ok") {
           for (let i = 3; i < 7; i++) stage(i, "", "해당 없음");
-          trust("pass", "정상", "최근 21건 RMSE가 0.0120 V 이내입니다.");
+          trust("pass", "정상", "최근 21건 RMSE가 12 mV 이내입니다.");
           badge("pipeline-badge", "✓ 정상 · 재학습 불필요", "pass");
           return;
         }
@@ -1880,7 +1880,7 @@
         stage(
           5,
           d.promoted ? "done" : "failed",
-          `${fmt(d.rmse, 4)} V · ${d.promoted ? "통과" : "미통과"}`,
+          `${fmt(d.rmse * 1000)} mV · ${d.promoted ? "통과" : "미통과"}`,
         );
         await pause(120);
         stage(
@@ -1902,7 +1902,7 @@
         );
         text(
           "pipeline-note",
-          `게이트 평가 ${fmt(d.rmse, 4)} V / 기준 0.0120 V. Registry 승격은 서빙 캐시 교체를 보장하지 않습니다. 현재 서빙 버전은 /predict 응답으로만 확인합니다.`,
+          `게이트 평가 ${fmt(d.rmse * 1000)} mV / 기준 12 mV. Registry 승격은 서빙 캐시 교체를 보장하지 않습니다. 현재 서빙 버전은 /predict 응답으로만 확인합니다.`,
         );
       }
       async function batch(kind) {
@@ -1969,7 +1969,7 @@
           renderMetric(r);
           drawAll();
           await finishStages(r);
-          entry.rmse = r.window_rmse;
+          entry.rmse = r.window_rmse === null ? null : r.window_rmse * 1000;
           entry.result =
             r.window_rmse === null
               ? "판정 대기"
@@ -2017,7 +2017,7 @@
             r.n,
             r.time,
             r.kind,
-            r.rmse === null ? "— V" : fmt(r.rmse, 4) + " V",
+            r.rmse === null ? "— mV" : fmt(r.rmse) + " mV",
             r.result,
             r.promotion,
           ]) {
@@ -2317,25 +2317,25 @@
           vals = r ? [...r.actuals, ...r.predictions] : [];
         const ch = chart("compare", vals, { xmin: 1, xmax: 21 });
         const errors = r
-          ? r.actuals.map((v, i) => Math.abs(r.predictions[i] - v))
+          ? r.actuals.map((v, i) => Math.abs(r.predictions[i] - v) * 1000)
           : [];
         const e = chart("errors", errors, {
           min: 0,
-          max: Math.max(LIMIT * 1.5, ...errors) * 1.15,
-          unit: "V",
+          max: Math.max(18, ...errors) * 1.15,
+          unit: "mV",
           xmin: 1,
           xmax: 21,
         });
         e.ctx.strokeStyle = C.error;
         e.ctx.setLineDash([5, 4]);
         e.ctx.beginPath();
-        e.ctx.moveTo(e.p.l, e.y(LIMIT));
-        e.ctx.lineTo(e.w - e.p.r, e.y(LIMIT));
+        e.ctx.moveTo(e.p.l, e.y(12));
+        e.ctx.lineTo(e.w - e.p.r, e.y(12));
         e.ctx.stroke();
         e.ctx.setLineDash([]);
         e.ctx.fillStyle = C.error;
         e.ctx.textAlign = "right";
-        e.ctx.fillText("0.0120 V", e.w - e.p.r, e.y(LIMIT) - 6);
+        e.ctx.fillText("12 mV", e.w - e.p.r, e.y(12) - 6);
         if (!r) return;
         $("compare-empty").style.display = "none";
         $("error-empty").style.display = "none";
@@ -2388,7 +2388,7 @@
               );
             drawWave();
           } else {
-            tip.textContent = `${index + 1} / 21건\n실제 E ${fmt(batch.actuals[index], 6)} V\n예측 E ${fmt(batch.predictions[index], 6)} V\n절대 오차 ${fmt(Math.abs(batch.predictions[index] - batch.actuals[index]), 4)} V`;
+            tip.textContent = `${index + 1} / 21건\n실제 E ${fmt(batch.actuals[index], 6)} V\n예측 E ${fmt(batch.predictions[index], 6)} V\n절대 오차 ${fmt(Math.abs(batch.predictions[index] - batch.actuals[index]) * 1000)} mV`;
             drawBatch();
           }
           tip.style.display = "block";
