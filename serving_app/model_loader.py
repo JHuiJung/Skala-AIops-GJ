@@ -62,8 +62,6 @@ class LoadedModel:
         흐름:  [달러 값 20개] → ① 0~1로 변환 → ② 입력 모양 맞추기 → ③ 예측(0~1) → ④ 달러로 복원
         확인:  /predict 응답의 predicted_close 가 입력 종가와 비슷한 "달러" 값이면 성공
         """
-        import numpy as np
-
         # ════════════════════════ [빈칸 2]  ① 0~1로 변환 ════════════════════════
         # 하루치(p)의 종가·거래량을 0~1로 바꾸는 스케일러 도구 이름을 채우세요. (파일 위 "도구" 목록에서 고르기)
         #   예) [{"close": 160.0, "volume": 1200000}, ...]  →  [[0.42, 0.31], ...]
@@ -72,10 +70,7 @@ class LoadedModel:
         #     · 이 모델은 학습할 때 어떤 도구로 입력을 0~1로 바꿨을까요? (data/features.py 의 build_sequences 참고)
         #     · 서버에서 다른 방법으로 바꾸거나, 아예 안 바꾸고 넣으면 어떻게 될까요?
         # ② 입력 모양 맞추기 — 모델은 "문제 여러 개"를 받으므로 1개라도 [ ]로 감쌉니다. (1, 20, 2)
-        x = np.asarray(sequence, dtype="float32").reshape(1, SEQUENCE_LENGTH, 1)  # (1, 150, 1)
-
-        # ③ 예측 — 결과가 [[0.47]] 처럼 2겹이라 [0][0] 으로 숫자만 꺼냅니다. (아직 0~1 범위)
-        pred = float(self._keras_model.predict(x, verbose=0)[0][0])
+        pred = self.predict_many([sequence])[0]
 
         # ════════════════════════ [빈칸 3]  ④ 달러로 복원 ════════════════════════
         # 사용자에게 돌려줄 값을 만드는 스케일러 도구 이름을 채우세요. (파일 위 "도구" 목록에서 고르기)
@@ -84,6 +79,18 @@ class LoadedModel:
         #     · pred_scaled 는 0.47 같은 값입니다. 이대로 응답하면 사용자는 무엇을 보게 될까요?
         #     · train_baseline_v1.py 의 STEP 7(시험 보기)에서는 예측값을 어떻게 처리했나요?
         return pred
+
+    def predict_many(self, sequences) -> list[float]:
+        """여러 개의 150포인트 입력을 한 번의 모델 호출로 예측한다."""
+        import numpy as np
+
+        x = np.asarray(sequences, dtype="float32").reshape(
+            -1, SEQUENCE_LENGTH, 1
+        )
+        predictions = np.asarray(
+            self._keras_model.predict(x, verbose=0), dtype="float64"
+        ).reshape(-1)
+        return predictions.tolist()
 
 
 # ═══════════════════════════════ 어디서 불러올까? ═══════════════════════════════

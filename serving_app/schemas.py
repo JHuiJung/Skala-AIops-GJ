@@ -21,6 +21,8 @@ class DailyPoint(BaseModel):
 
 # 서버가 INTERVAL(3)행 간격으로 SEQUENCE_LENGTH(150)개를 뽑으므로, 요청은 연속 450행을 받는다
 RAW_LENGTH = SEQUENCE_LENGTH * INTERVAL
+RANGE_PREDICTION_COUNT = RAW_LENGTH
+RANGE_INPUT_LENGTH = RAW_LENGTH + RANGE_PREDICTION_COUNT - 1
 
 
 class PredictRequest(BaseModel):
@@ -34,6 +36,25 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     predicted_e: float
+    model_version: str
+
+
+class RangePredictRequest(BaseModel):
+    sequence: list[float] = Field(
+        ...,
+        min_length=RANGE_INPUT_LENGTH,
+        max_length=RANGE_INPUT_LENGTH,
+        description=(
+            f"선택 구간 {RANGE_PREDICTION_COUNT}행을 예측하기 위한 "
+            f"이전 이력 포함 연속 {RANGE_INPUT_LENGTH}행 Input_V"
+        ),
+    )
+
+
+class RangePredictResponse(BaseModel):
+    predictions: list[float] = Field(
+        ..., min_length=RANGE_PREDICTION_COUNT, max_length=RANGE_PREDICTION_COUNT
+    )
     model_version: str
 
 '''
