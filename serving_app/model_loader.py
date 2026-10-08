@@ -105,7 +105,7 @@ def _load_from_local() -> LoadedModel:
 
 def _load_from_mlflow() -> LoadedModel:
     """
-    Day2: train_and_register.py 가 "HAIC_Predictor" 이름으로 등록하고 Production 으로 올려 둔 모델을
+    Day2: train_and_register.py 가 "SKHY_Predictor" 이름으로 등록하고 Production 으로 올려 둔 모델을
     MLflow Model Registry 에서 불러옵니다.
 
     확인 방법

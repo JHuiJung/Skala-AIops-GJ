@@ -12,7 +12,7 @@ MLFLOW_ARTIFACT_DIR = RUNTIME_DIR / "mlartifacts"
 DEFAULT_TRACKING_URI = f"sqlite:///{MLFLOW_DB_PATH}"
 
 EXPERIMENT_NAME = "SKHY_Voltage"
-MODEL_NAME = "SKHY_Voltage_Predictor"
+MODEL_NAME = "SKHY_Predictor"
 
 
 def tracking_uri() -> str:
