@@ -55,4 +55,6 @@ class BatchTestRequest(BaseModel):
 
 class BatchTestResponse(BaseModel):
     predictions: list[float]
+    actuals: list[float]
+    window_rmse: float | None
     drift_check: dict

@@ -12,12 +12,14 @@ StaticFiles를 "/"에 마지막으로 mount해야, /predict 같은 API 경로가
 """
 import logging
 import os
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from serving_app import model_loader
-from serving_app.routers import data, health, logs, predict
+from serving_app.routers import data, health, logs, metrics, models, predict, system
 
 # monitoring/retrain_trigger.py가 쓰는 "aiops" 로거를 logs/aiops.log 파일에 연결한다.
 # (routers/logs.py가 같은 디렉토리를 읽기 전용으로 노출한다.) 여기서 이 로거 하나만
@@ -32,14 +34,51 @@ if not _aiops_logger.handlers:
     _aiops_logger.addHandler(_handler)
     _aiops_logger.addHandler(logging.StreamHandler())  # 터미널에서도 동일하게 확인 가능
 
-app = FastAPI(title="HAIC Serving & AIOps")
+app = FastAPI(title="SKHY Voltage Serving & AIOps")
+
+
+@app.middleware("http")
+async def record_request_metrics(request: Request, call_next):
+    """사용자 기능 API의 상태와 처리시간을 JSONL로 남긴다."""
+
+    started_at = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        if metrics.should_record_request(request.method, request.url.path):
+            metrics.append_request_metric(
+                method=request.method,
+                path=request.url.path,
+                status_code=500,
+                latency_ms=(time.perf_counter() - started_at) * 1000,
+            )
+        raise
+
+    if metrics.should_record_request(request.method, request.url.path):
+        metrics.append_request_metric(
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            latency_ms=(time.perf_counter() - started_at) * 1000,
+        )
+    return response
 
 app.include_router(predict.router)
 app.include_router(health.router)
 app.include_router(data.router)  # HAIC 데이터 업로드
 app.include_router(logs.router)  # 대시보드: 재학습 로그 파일 조회
+app.include_router(metrics.router)
+app.include_router(models.router)
+app.include_router(system.router)
 
 _STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(os.path.join(_STATIC_DIR, "voltage-dashboard-v3.html"))
+
+
 app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")  # 대시보드 UI
 
 

@@ -132,6 +132,7 @@ mlruns/
 wandb/
 lightning_logs/
 outputs/
+runtime/
 
 # 대용량 배열 / 캐시
 *.npy

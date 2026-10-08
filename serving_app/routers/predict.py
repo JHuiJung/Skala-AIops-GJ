@@ -13,7 +13,11 @@
 
 ■ 이 파일의 빈칸 : [빈칸 6]  (batch_test 의 슬라이딩 윈도우)
 """
-from fastapi import APIRouter
+import csv
+import io
+import math
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
 import numpy as np
 from data.features import SEQ_LEN  # = 20
 from data.voltage_preprocessing import (
@@ -23,8 +27,14 @@ from data.voltage_preprocessing import (
     load_voltage_data,
 )
 from serving_app import model_loader
-from serving_app.schemas import PredictRequest, PredictResponse, BatchTestRequest, BatchTestResponse
-from serving_app.monitoring.drift_detector import WINDOW_SIZE
+from serving_app.schemas import (
+    RAW_LENGTH,
+    BatchTestRequest,
+    BatchTestResponse,
+    PredictRequest,
+    PredictResponse,
+)
+from serving_app.monitoring.drift_detector import WINDOW_SIZE, compute_rmse
 from serving_app.monitoring.retrain_trigger import check_and_trigger
 
 router = APIRouter()
@@ -85,6 +95,51 @@ def predict(req: PredictRequest):
     return PredictResponse(predicted_e=predicted_e, model_version=model.version)
 
 
+@router.post("/predict/csv")
+async def predict_csv(file: UploadFile = File(...)):
+    """업로드한 CSV의 마지막 450개 Input_V로 E 하나를 예측한다."""
+
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(400, "CSV 파일만 업로드할 수 있습니다.")
+
+    raw = await file.read()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(400, "UTF-8로 인코딩된 CSV 파일만 업로드할 수 있습니다.") from exc
+
+    reader = csv.DictReader(io.StringIO(text))
+    if "Input_V" not in (reader.fieldnames or []):
+        raise HTTPException(400, "CSV에 Input_V 컬럼이 필요합니다.")
+
+    values: list[float] = []
+    for row_number, row in enumerate(reader, start=2):
+        raw_value = row.get("Input_V")
+        if raw_value is None or not raw_value.strip():
+            raise HTTPException(400, f"{row_number}행의 Input_V 값이 비어 있습니다.")
+        try:
+            value = float(raw_value)
+        except ValueError as exc:
+            raise HTTPException(400, f"{row_number}행의 Input_V 값은 숫자여야 합니다.") from exc
+        if not math.isfinite(value):
+            raise HTTPException(400, f"{row_number}행의 Input_V 값은 유한한 숫자여야 합니다.")
+        values.append(value)
+
+    if len(values) < RAW_LENGTH:
+        raise HTTPException(400, f"예측에는 최소 {RAW_LENGTH}행이 필요합니다. 현재 {len(values)}행입니다.")
+
+    raw_sequence = values[-RAW_LENGTH:]
+    model = model_loader.get_model()
+    predicted_e = model.predict_one(raw_sequence[::INTERVAL])
+    return {
+        "filename": file.filename,
+        "total_rows": len(values),
+        "used_rows": RAW_LENGTH,
+        "predicted_e": predicted_e,
+        "model_version": model.version,
+    }
+
+
 @router.post("/predict/batch-test", response_model=BatchTestResponse)
 def batch_test(req: BatchTestRequest):
     """
@@ -115,11 +170,13 @@ def batch_test(req: BatchTestRequest):
 
     model = model_loader.get_model()
     predictions: list[float] = []
+    actuals: list[float] = []
 
     for i in range(len(X)):
         pred = model.predict_one(X[i, :, 0])  # Input_V 150개 (슬라이딩은 build_sequences가 이미 처리)
         actual = float(y[i, 0])
         predictions.append(pred)
+        actuals.append(actual)
         recent_predictions.append({"predicted": pred, "actual": actual})
 
     # 최근 21건만 남기기 — 오래된 기록까지 섞이면 "지금" 상태를 판단할 수 없습니다.
@@ -127,5 +184,11 @@ def batch_test(req: BatchTestRequest):
     recent_predictions[:] = recent_predictions[-WINDOW_SIZE:]
 
     # 드리프트 판단·재학습은 retrain_trigger.py 가 합니다. 여기서는 넘겨주기만!
+    window_rmse = compute_rmse(recent_predictions) if len(recent_predictions) >= WINDOW_SIZE else None
     drift_check = check_and_trigger(recent_predictions)
-    return BatchTestResponse(predictions=predictions, drift_check=drift_check)
+    return BatchTestResponse(
+        predictions=predictions,
+        actuals=actuals,
+        window_rmse=window_rmse,
+        drift_check=drift_check,
+    )
