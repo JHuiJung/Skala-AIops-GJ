@@ -12,12 +12,13 @@ StaticFiles를 "/"에 마지막으로 mount해야, /predict 같은 API 경로가
 """
 import logging
 import os
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from serving_app import model_loader
-from serving_app.routers import data, health, logs, predict
+from serving_app.routers import data, health, logs, metrics, models, predict
 
 # monitoring/retrain_trigger.py가 쓰는 "aiops" 로거를 logs/aiops.log 파일에 연결한다.
 # (routers/logs.py가 같은 디렉토리를 읽기 전용으로 노출한다.) 여기서 이 로거 하나만
@@ -38,6 +39,24 @@ app.include_router(predict.router)
 app.include_router(health.router)
 app.include_router(data.router)  # HAIC 데이터 업로드
 app.include_router(logs.router)  # 대시보드: 재학습 로그 파일 조회
+app.include_router(models.router)  # 대시보드: MLflow 레지스트리 조회 (현재 운영 모델, 재학습 이력)
+app.include_router(metrics.router)  # 대시보드: 운영 지표 집계
+
+
+@app.middleware("http")
+async def record_requests(request: Request, call_next):
+    # /predict 계열 요청만 logs/requests.log 에 기록한다 (운영 지표용). 대시보드 폴링은 제외.
+    if not request.url.path.startswith(metrics.LOGGED_PREFIX):
+        return await call_next(request)
+    start = time.perf_counter()
+    status = 500  # 예외로 끝나면 500으로 기록
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        metrics.log_request(request.url.path, status, (time.perf_counter() - start) * 1000)
+
 
 _STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")  # 대시보드 UI
