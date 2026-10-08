@@ -1,7 +1,7 @@
 """
 대시보드의 "현재 운영 모델" 카드와 "재학습 이력" 표용 - MLflow Model Registry를 읽기 전용으로 조회한다.
 
-train_and_register.py가 "HAIC_Predictor" 이름으로 등록한 버전들을 그대로 보여 줄 뿐,
+train_and_register.py가 "SKHY_Predictor" 이름으로 등록한 버전들을 그대로 보여 줄 뿐,
 학습·승격 로직은 없다. (RMSE와 학습 방식은 각 버전을 만든 MLflow run의 metric/param에서 읽는다.)
 """
 import os
@@ -12,7 +12,7 @@ from serving_app.monitoring.drift_detector import RMSE_THRESHOLD
 
 router = APIRouter(prefix="/models")
 
-MODEL_NAME = "HAIC_Predictor"
+MODEL_NAME = "SKHY_Predictor"
 
 
 def list_versions() -> list[dict]:

@@ -37,7 +37,7 @@ from data.voltage_preprocessing import SEQUENCE_LENGTH
 
 LOCAL_MODEL_PATH = "serving_app/models/haic_v1.keras"
 SCALER_PATH = "serving_app/models/scaler.pkl"
-MLFLOW_MODEL_URI = "models:/HAIC_Predictor/Production"  # "models:/<모델 이름>/<단계>" 형식
+MLFLOW_MODEL_URI = "models:/SKHY_Predictor/Production"  # "models:/<모델 이름>/<단계>" 형식
 
 _model_cache = None  # 한 번 불러온 모델을 담아 두는 상자 (처음엔 비어 있음 = None)
 
@@ -97,7 +97,7 @@ def _load_from_local() -> LoadedModel:
 
 def _load_from_mlflow() -> LoadedModel:
     """
-    Day2: train_and_register.py 가 "HAIC_Predictor" 이름으로 등록하고 Production 으로 올려 둔 모델을
+    Day2: train_and_register.py 가 "SKHY_Predictor" 이름으로 등록하고 Production 으로 올려 둔 모델을
     MLflow Model Registry 에서 불러옵니다.
 
     확인 방법

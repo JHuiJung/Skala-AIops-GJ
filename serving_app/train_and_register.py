@@ -42,7 +42,7 @@ TRAIN_CSV = "data/SKHY_train.csv"
 TEST_CSV = "data/SKHY_test_answer.csv"  # 게이트 평가용 (학습에 쓰지 않은 구간)
 
 RMSE_GATE = 0.012  # drift_detector.RMSE_THRESHOLD와 같은 기준 (E 전압 단위)
-MODEL_NAME = "HAIC_Predictor"
+MODEL_NAME = "SKHY_Predictor"
 
 BASE_EPOCHS = 30  # early stopping이 있으므로 "최대" 에폭
 BASE_BATCH_SIZE = 512
