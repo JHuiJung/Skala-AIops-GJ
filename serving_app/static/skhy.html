@@ -3,21 +3,23 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>전압 예측 대시보드</title>
+    <title>SK하이닉스 | 전압 예측 대시보드</title>
     <link rel="icon" href="data:," />
     <style>
       :root {
-        --bg: #eef1f3;
+        --bg: #f6f3f1;
         --surface: #fff;
-        --text: #202d33;
-        --muted: #61717a;
-        --line: #d8e0e4;
-        --accent: #006e7e;
+        --text: #302a2a;
+        --muted: #6e6261;
+        --line: #e5dcd7;
+        --accent: #cc1737;
+        --brand-red: #ea002c;
+        --brand-orange: #f47725;
         --ok: #237347;
-        --warn: #906000;
-        --fail: #b5323e;
-        --input: #007b8b;
-        --actual: #7655a3;
+        --warn: #a75116;
+        --fail: #bd1833;
+        --input: #cf2040;
+        --actual: #d86b1b;
         --mono: Consolas, "SFMono-Regular", monospace;
       }
       * {
@@ -58,7 +60,7 @@
         font: inherit;
       }
       button {
-        border: 1px solid #b9c8ce;
+        border: 1px solid #b8c6d6;
         border-radius: 3px;
         padding: 8px 12px;
         background: white;
@@ -69,7 +71,7 @@
       }
       button:hover {
         border-color: var(--accent);
-        background: #edf6f7;
+        background: #edf2f8;
       }
       button.primary {
         background: var(--accent);
@@ -97,7 +99,7 @@
         accent-color: var(--accent);
       }
       :focus-visible {
-        outline: 3px solid #38a2b1;
+        outline: 3px solid var(--brand-orange);
         outline-offset: 2px;
       }
       a {
@@ -149,29 +151,32 @@
         position: fixed;
         inset: 0 auto 0 0;
         width: 210px;
-        background: #e0e7eb;
-        border-right: 1px solid #c8d3d9;
+        background: #e7edf4;
+        border-right: 1px solid #c9d4e1;
         display: flex;
         flex-direction: column;
         overflow: auto;
         z-index: 5;
       }
       .rail-brand {
-        padding: 23px 20px 19px;
-        border-bottom: 1px solid #c8d3d9;
-        display: flex;
-        align-items: center;
-        gap: 11px;
+        padding: 18px 20px 15px;
+        border-top: 4px solid var(--brand-red);
+        border-bottom: 1px solid #c9d4e1;
+        background: #fff;
       }
-      .rail-brand strong {
-        font-size: 17px;
-        line-height: 1.2;
+      .sk-logo {
+        display: block;
+        width: 156px;
+        height: 82px;
+        margin: -6px 0 5px;
       }
-      .rail-brand span {
-        font-family: var(--mono);
-        font-size: 22px;
-        color: var(--accent);
+      .brand-product {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
         font-weight: 700;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
       }
       .rail nav {
         padding: 14px 10px;
@@ -186,7 +191,7 @@
       .rail nav a:first-child {
         background: white;
         color: var(--accent);
-        border-left-color: var(--accent);
+        border-left-color: var(--brand-red);
       }
       .rail nav a:hover {
         background: #f5f8fa;
@@ -484,10 +489,7 @@
         border-radius: 50%;
       }
       .swatch.pred {
-        height: 7px;
-        width: 7px;
-        background: var(--fail);
-        transform: rotate(45deg);
+        background: #7655a3;
       }
       .plot {
         position: relative;
@@ -561,7 +563,7 @@
       .readouts {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        background: #f1f6f7;
+        background: #edf3f9;
         border-top: 1px solid var(--line);
         margin-top: auto;
       }
@@ -623,69 +625,102 @@
         padding-bottom: 5px;
       }
       .steps {
-        display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-        padding: 7px 14px 13px;
-        gap: 7px;
+        display: flex;
+        overflow-x: auto;
+        padding: 18px 12px 19px;
+        scrollbar-color: #c9bab2 transparent;
       }
       .step {
         position: relative;
+        flex: 1 0 140px;
         min-width: 0;
-        padding: 11px 9px 12px;
-        border: 1px solid #c7d1d7;
-        border-top: 5px solid #a9bac3;
-        background: #eaf0f3;
-        border-radius: 3px;
-        color: #4e606a;
-        min-height: 125px;
+        padding: 0 5px;
+        text-align: center;
+        color: var(--muted);
       }
-      .step.done {
-        background: #237347;
-        border-color: #195c37;
-        color: #fff;
+      .step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 25px;
+        left: calc(50% + 27px);
+        width: calc(100% - 54px);
+        border-top: 2px solid #d8cbc5;
       }
-      .step.active {
-        background: #ffe7a0;
-        border: 2px solid #946200;
-        border-top-width: 5px;
-        color: #553900;
+      .step.linked-done::after {
+        border-color: var(--ok);
       }
-      .step.failed {
-        background: #b5323e;
-        border-color: #8d2430;
-        color: #fff;
+      .step.linked-active::after {
+        border-color: var(--brand-orange);
+      }
+      .step-symbol {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 11px;
+        border: 2px solid #b9aaa2;
+        border-radius: 50%;
+        background: #f5f0ed;
+        color: #7b6c65;
+      }
+      .step-symbol svg {
+        width: 25px;
+        height: 25px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .step.done .step-symbol {
+        border-color: var(--ok);
+        background: #eaf6ee;
+        color: var(--ok);
+      }
+      .step.active .step-symbol {
+        border-color: var(--brand-orange);
+        background: #fff1e3;
+        color: #aa4a13;
+        box-shadow: 0 0 0 3px #fbd9c3;
+      }
+      .step.failed .step-symbol {
+        border-color: var(--fail);
+        background: #fff0f1;
+        color: var(--fail);
       }
       .step-num {
         font-family: var(--mono);
         font-size: 14px;
         font-weight: 700;
-        display: inline-block;
-        padding: 2px 5px;
-        background: #ffffff90;
-        border-radius: 2px;
-        color: #354b57;
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
       }
-      .step.done .step-num,
-      .step.failed .step-num {
-        background: #ffffff26;
-        color: #fff;
+      .step.done .step-num {
+        color: var(--ok);
       }
       .step.active .step-num {
-        background: #fff5d7;
-        color: #553900;
+        color: var(--warn);
+      }
+      .step.failed .step-num {
+        color: var(--fail);
       }
       .step b {
         word-break: keep-all;
         display: block;
-        margin: 9px 0 5px;
+        margin: 0 0 3px;
         font-size: 14px;
         line-height: 1.35;
+        color: var(--text);
       }
       .step small {
         display: block;
-        color: inherit;
+        color: var(--muted);
         font-size: 14px;
         line-height: 1.4;
+        min-height: 20px;
       }
       .pipeline-legend {
         display: flex;
@@ -704,7 +739,7 @@
         display: inline-block;
         width: 11px;
         height: 11px;
-        border-radius: 2px;
+        border-radius: 50%;
       }
       .pipeline details {
         border-top: 1px solid #e8edef;
@@ -825,6 +860,254 @@
       .compact-info strong {
         color: var(--text);
       }
+      /* 브랜드 색은 조작과 계측 신호에, 상태 색은 판정에 사용한다. */
+      button {
+        border-color: #d6c8c1;
+      }
+      button:hover {
+        background: #fff3ee;
+      }
+      button.primary:hover {
+        background: #ad1230;
+        color: #fff;
+      }
+      button.danger {
+        border-color: #e2a9ac;
+      }
+      .rail {
+        width: 196px;
+        background: #fcfaf8;
+        border-color: var(--line);
+      }
+      .rail-brand {
+        border-top: 0;
+        border-color: var(--line);
+        padding: 16px 18px 18px;
+      }
+      .sk-logo {
+        width: 155px;
+        height: 81px;
+      }
+      .rail nav {
+        gap: 3px;
+        padding: 19px 10px;
+      }
+      .rail nav a,
+      .rail nav a:first-child {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 11px;
+        border: 0;
+        border-radius: 4px;
+        color: var(--muted);
+        background: transparent;
+      }
+      .rail nav a:first-child {
+        color: var(--accent);
+        background: #fcebef;
+      }
+      .rail nav a:hover {
+        background: #fff1eb;
+        color: var(--accent);
+      }
+      .ui-icon {
+        display: inline-block;
+        flex: none;
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: -3px;
+      }
+      .rail-footer {
+        padding: 15px 18px;
+        border-color: var(--line);
+      }
+      .rail-footer div:nth-child(2),
+      .rail-footer #health-time {
+        font-size: 14px;
+      }
+      header,
+      main {
+        margin-left: 196px;
+      }
+      header {
+        border-bottom-color: var(--line);
+      }
+      .heading .label {
+        border: 0;
+        padding-left: 0;
+      }
+      .heading .label::before {
+        content: "·";
+        color: var(--brand-orange);
+        font-weight: 800;
+        margin-right: 11px;
+      }
+      .workbench {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: 0;
+        margin-bottom: 14px;
+        background: white;
+        border: 1px solid var(--line);
+      }
+      .action-block {
+        min-width: 0;
+        padding: 12px 17px;
+      }
+      .action-block + .action-block {
+        border-left: 1px solid var(--line);
+      }
+      .action-block h2 {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 9px;
+      }
+      .action-block h2 .ui-icon {
+        color: var(--accent);
+      }
+      .action-block .filebox {
+        display: grid;
+        grid-template-columns: auto minmax(90px, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+      }
+      .action-block .file-picker {
+        padding: 8px 12px;
+        border-color: #dcbbb6;
+        border-radius: 3px;
+        white-space: nowrap;
+      }
+      .action-block #selected-file {
+        margin: 0;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .action-block .filebox button {
+        width: auto;
+      }
+      .action-block .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .action-block .badge {
+        margin-top: 8px;
+      }
+      .action-block details {
+        margin-top: 6px;
+      }
+      .action-block details[open] {
+        padding-bottom: 7px;
+      }
+      .action-block .details {
+        grid-template-columns: 58px 1fr;
+      }
+      .overview {
+        gap: 0;
+        background: white;
+        border: 1px solid var(--line);
+      }
+      .metric {
+        border: 0;
+        border-right: 1px solid var(--line);
+        min-height: 146px;
+      }
+      .metric:last-child {
+        border-right: 0;
+      }
+      .metric.status {
+        border-left: 0;
+        background: #fffaf8;
+      }
+      .metric.status.pass {
+        background: #f1f8f3;
+      }
+      .metric.status.fail {
+        background: #fff0f1;
+      }
+      .metric.status.warn {
+        background: #fff5e8;
+      }
+      .metric-label {
+        color: #5b4f4b;
+      }
+      .gauge {
+        background: #f1e6e2;
+      }
+      .readouts {
+        background: #fff7f1;
+      }
+      .message.error {
+        border-left: 0;
+        border: 1px solid #e8bac1;
+      }
+      .panel-head {
+        border-bottom-color: var(--line);
+      }
+      .section-no {
+        color: var(--accent);
+      }
+      .help {
+        margin: 14px 0;
+        padding: 12px 15px;
+        background: #fffaf6;
+        border: 1px solid var(--line);
+      }
+      .help h2 {
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+      .help > details {
+        display: inline-block;
+        vertical-align: top;
+        margin: 0 18px 4px 0;
+        max-width: 350px;
+      }
+      .help details[open] {
+        display: block;
+        max-width: 760px;
+        margin-bottom: 9px;
+      }
+      .help p {
+        margin-top: 8px;
+      }
+      .help .formula {
+        font-family: var(--mono);
+        color: var(--accent);
+        font-weight: 700;
+        margin-top: 7px;
+      }
+      .logs {
+        background: #fdfaf8;
+      }
+      th {
+        background: #fbf5f1;
+      }
+      .badge.warn {
+        background: #fff3df;
+      }
+      .badge.fail {
+        background: #fff0f1;
+      }
+      .tooltip {
+        border-color: #ad968c;
+      }
+      .banner {
+        border-color: #e8bac1;
+      }
+      .rail-section,
+      .rail nav b {
+        color: var(--muted);
+      }
       @media (min-width: 1600px) {
         .rail {
           width: 230px;
@@ -921,6 +1204,10 @@
         .rail-brand {
           padding: 12px 16px;
         }
+        .sk-logo {
+          width: 148px;
+          height: 78px;
+        }
         .rail nav {
           display: flex;
           padding: 6px;
@@ -996,6 +1283,71 @@
           flex-wrap: wrap;
         }
       }
+      @media (min-width: 1600px) {
+        .rail {
+          width: 210px;
+        }
+        header,
+        main {
+          margin-left: 210px;
+        }
+      }
+      @media (max-width: 1150px) {
+        .rail {
+          width: 178px;
+        }
+        header,
+        main {
+          margin-left: 178px;
+        }
+        .workbench {
+          grid-template-columns: 1fr;
+        }
+        .action-block + .action-block {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+      }
+      @media (max-width: 760px) {
+        .rail {
+          position: relative;
+          width: auto;
+        }
+        .rail-brand {
+          padding: 10px 16px;
+        }
+        .rail nav {
+          padding: 6px 12px;
+        }
+        .rail-footer {
+          display: none;
+        }
+        header,
+        main {
+          margin-left: 0;
+        }
+        .action-block .filebox {
+          grid-template-columns: auto 1fr auto;
+        }
+        .overview {
+          grid-template-columns: 1fr 1fr;
+        }
+        .metric:nth-child(2) {
+          border-right: 0;
+        }
+        .metric:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--line);
+        }
+      }
+      @media (max-width: 480px) {
+        .action-block .filebox {
+          grid-template-columns: 1fr auto;
+        }
+        .action-block #selected-file {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         html {
           scroll-behavior: auto;
@@ -1006,91 +1358,24 @@
   <body>
     <aside class="rail">
       <div class="rail-brand">
-        <span>E / V</span
-        ><strong>회로 검증<br /><small>모델 운영</small></strong>
+        <svg class="sk-logo" role="img" aria-label="SK hynix" width="512px" height="269px" viewBox="0 0 512 269" version="1.1" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
+            <title>SK Hynix</title>
+            <g>
+                <path d="M45.4183793,177.262781 L43.0843172,176.167165 C35.5908088,172.618666 29.7834535,169.397985 29.7834535,163.44794 C29.7834535,158.430736 33.8011405,154.784716 41.7211562,154.784716 C44.6367002,154.784716 47.02039,155.129829 49.4873972,155.578474 C50.7753921,155.801889 52.1466318,155.988976 53.2807976,155.988976 C60.0902131,155.988976 63.9830082,152.001043 66.584505,144.420852 L67.7879513,140.828198 L66.6506095,140.363814 C63.2629455,139.018965 53.1915328,135.407212 40.6253523,135.407212 C17.1600492,135.407212 4.77380962,150.459008 4.78020328,166.068431 C4.78020328,173.943528 7.24721044,179.652955 11.1111046,184.15122 C15.7821759,189.574682 22.3192931,193.23962 28.5923463,196.35168 L29.8026163,196.947434 C39.4719511,201.689276 48.192954,205.194344 48.192954,212.223734 C48.1993659,218.464815 41.7531245,222.008391 33.1346562,222.008391 C21.3251172,222.008391 11.0085699,215.26726 9.69498214,214.453522 L0,232.619682 L1.20993056,233.321363 C5.10067293,235.525781 16.8775234,241.520125 34.7558297,241.520125 C56.6512176,241.507229 73.2345662,228.954409 73.2345662,209.634848 C73.2345662,190.417912 57.8687007,183.292435 45.4183793,177.262781 Z M131.066812,186.232791 L170.782267,137.533648 L142.485484,137.533648 L110.805403,179.562318 L110.331146,179.562318 L110.331146,137.533648 L87.0004007,137.533648 L87.0132244,240.69894 L88.3973059,240.69894 C98.4831548,240.69894 110.484939,236.027756 110.484939,219.188098 L110.484939,195.498508 L110.959196,195.498508 L143.254431,239.410945 L172.941707,239.410945 L131.066812,186.232791 Z" fill="#E31837"></path>
+                <g transform="translate(110.704069, 0.000000)">
+                    <path d="M95.4267314,63.3521489 C127.619449,64.6528585 153.570976,76.2317354 171.346161,87.5672173 L169.446935,88.6148382 C160.656341,93.4058812 147.161246,99.7985167 127.228564,99.8829995 C121.64098,99.8957142 118.552425,99.4534257 115.316508,99.459783 C100.68753,99.5110049 98.4127324,107.738661 97.9706254,118.676719 L97.9270367,119.953542 L97.9270367,119.953542 L97.8808062,121.227561 C97.4734552,132.041466 96.6587812,142.423809 92.3510004,149.120336 L91.7891446,147.551642 C89.9195316,142.418694 87.152459,135.731116 82.3869034,127.968229 L81.9783465,127.260882 C78.6018697,121.479064 75.9527326,118.514852 75.7740634,118.305269 L76.5256544,116.155846 L76.5256544,116.155846 L95.4267314,63.3521489 L95.4267314,63.3521489 Z M61.4014134,27.0211 C73.0013285,35.9600022 84.7057882,47.5486106 94.7980949,62.4198684 L95.4267494,63.353602 L58.5819924,108.56693 L57.8772228,108.464987 C56.3523463,108.263264 52.460332,107.840588 46.7916704,107.854909 C43.3699014,107.862175 40.2557174,108.027465 37.4106674,108.278126 C44.4464154,103.876129 50.9508714,95.9240179 50.9054624,84.1208181 C50.8734214,68.4411004 41.0821344,61.18103 41.0567054,49.2112682 C41.0118404,36.0305259 53.1866354,28.5722884 61.4014134,27.0211 Z" fill="#E31837"></path>
+                    <path d="M14.5329268,112.065895 C12.7348807,112.071955 11.8067128,110.922838 11.5186409,108.915541 L11.4187663,108.049065 C10.5642711,100.269614 2.6760034,28.1380202 0.866915815,11.3610298 L0.609177051,8.97719301 C0.390992668,7.05335022 0.00587170544,4.10405644 7.10542736e-15,2.9925741 C-0.00634048297,1.03179201 1.27517002,0.00644555929 2.78105793,0 L3.06605718,0.00567796096 C8.09726711,0.209726513 31.4481984,5.90976011 56.1899285,23.2602858 L55.7462761,23.3895838 C48.3897729,25.6103828 35.7566628,33.1853633 35.8131795,48.5390263 C35.8640381,62.411991 45.7901001,70.0435111 45.8413584,83.9548013 C45.9249118,106.580719 19.9154598,112.052927 14.5329268,112.065895 Z M94.4668469,155.138003 C94.8640892,156.188778 95.2357205,157.072265 95.6138908,157.687473 C96.1969488,158.668318 96.9467504,159.116964 97.8822587,159.116964 C98.4653166,159.110607 99.1829683,158.911713 99.98401,158.553887 L186.500696,118.328775 C188.193479,117.544289 189.539976,116.92129 190.468336,116.493249 L191.740833,115.893681 C193.435656,115.1036 195.571704,114.123181 196.389117,113.641714 C197.4784,113.020512 197.978268,112.115955 197.978268,111.193961 C197.971856,110.674476 197.823875,110.154991 197.529803,109.680916 L197.404365,109.487019 C195.685405,106.924859 188.312572,99.2107105 176.191881,90.8036433 L174.09279,91.9543044 C164.17201,97.3524792 149.316163,104.663472 127.928451,104.747084 L126.979442,104.745433 C122.295338,104.717599 120.894477,104.403314 117.521724,104.394578 L117.188996,104.394706 C105.98818,104.431033 103.187995,109.226276 102.777893,119.04944 L102.73062,120.664026 C102.688887,122.254766 102.64692,124.131562 102.566466,126.142767 L102.504403,127.555505 C102.089109,136.185231 100.822913,147.458846 94.4668469,155.138003 Z" fill="#F58025"></path>
+                </g>
+                <path d="M293.342681,182.35482 C300.687504,182.35482 302.934343,186.441437 304.836344,190.970408 L319.069941,225.293496 L319.460826,225.293496 L333.064548,183.431389 L347.174496,183.431389 L325.375195,242.095192 C316.833614,265.18247 305.831456,268.168417 296.392783,268.168417 C289.722273,268.168417 284.820318,265.784781 284.307699,265.522133 L287.870437,254.718487 L288.136694,254.855168 C289.084006,255.330236 292.274227,256.807505 295.771236,256.807505 C303.268344,256.807505 307.97166,252.642365 312.130298,239.596216 L286.345387,183.431934 L286.843674,183.285002 L287.506821,183.109706 C288.797572,182.787993 290.970349,182.35482 293.342681,182.35482 Z M229.897912,154.017478 C236.850361,154.017478 241.329408,159.073371 241.329408,165.807963 L241.329408,189.856288 L242.212954,189.105041 L242.638713,188.75857 C245.304565,186.62611 251.506247,182.352822 259.508301,182.352822 C270.452789,182.352822 278.526598,188.062068 278.526598,201.973358 L278.526598,239.414033 L263.916855,239.414033 L263.916855,205.978294 C263.916855,199.820403 260.520715,195.046593 254.093709,195.046593 C247.980683,195.046593 242.796789,199.871625 241.329408,201.082787 L241.329408,239.414033 L226.822182,239.414033 L226.822182,154.017478 L229.897912,154.017478 Z M388.710381,182.593129 L389.157034,182.597742 C396.485775,182.748119 408.926206,186.634619 409.179329,202.935948 L409.183253,203.444081 L409.183253,239.410945 L395.092541,239.410945 L395.092541,206.97476 C395.092541,200.131367 391.331163,194.876943 384.077559,194.876943 C379.635236,194.876943 375.537038,197.937505 373.679898,199.52439 L373.282885,199.870445 L372.735774,200.368405 L372.735774,239.410945 L358.632239,239.410945 L358.631136,201.319808 L358.622512,200.266416 C358.541321,193.71784 357.965766,189.492163 357.49808,186.889712 L357.320441,185.945143 L357.036694,184.548281 L357.385687,184.466987 C358.258452,184.275405 360.512594,183.83626 362.310299,183.83626 C368.46819,183.83626 371.153072,187.706602 371.755383,189.994151 L372.079853,189.679293 C374.275804,187.588857 380.349331,182.593129 388.710381,182.593129 Z M438.919953,183.397241 L438.919953,239.330843 L424.938006,239.330843 L424.938006,183.397241 L438.919953,183.397241 Z M462.147438,182.284345 C467.241767,182.183306 469.777481,185.032931 472.029027,188.365147 L472.648062,189.29985 L473.405905,190.466955 L481.498949,203.179979 L494.942485,182.617469 L511.589898,182.617469 L492.276839,210.664372 L512,239.319945 L495.38461,239.319945 L481.877011,218.686596 L468.369392,239.319945 L451.741198,239.319945 L471.169596,211.067609 L467.985322,206.488884 L452.86897,184.885401 L453.330031,184.654723 C454.308156,184.178141 456.571426,183.159262 459.242343,182.625286 L460.00843,182.480068 C460.760051,182.352459 461.469322,182.299482 462.147438,182.284345 Z M431.934102,157.971192 C436.746346,157.971192 440.629457,161.76452 440.629457,166.442243 C440.629457,171.100712 436.746346,174.874968 431.934102,174.874968 C427.128251,174.874968 423.24514,171.100712 423.24514,166.442243 C423.24514,161.76452 427.128251,157.971192 431.934102,157.971192 Z" fill="#F58025"></path>
+            </g>
+        </svg>
+        <span class="brand-product">SK하이닉스 · 회로 검증</span>
       </div>
       <nav aria-label="화면 탐색">
-        <a href="#overview"><b>01</b>운영 현황</a
-        ><a href="#waveform"><b>02</b>파형 검증</a
-        ><a href="#records" id="records-link"><b>03</b>이력 · 로그</a>
+        <a href="#overview" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h6l2-7 3 14 2-7h5"/></svg>운영 현황</a>
+        <a href="#waveform"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17V7m4 7V4m4 15V9m4 5V6m4 11V11M2 20h20"/></svg>파형 검증</a>
+        <a href="#records" id="records-link"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zm3 5h8m-8 4h8m-8 4h5"/></svg>이력 · 로그</a>
       </nav>
-      <section class="rail-section" id="data-controls">
-        <h2>검증 데이터</h2>
-        <div class="filebox">
-          <label class="file-picker" for="csv-file">＋ CSV 선택</label
-          ><input
-            class="sr-only"
-            id="csv-file"
-            type="file"
-            accept=".csv,text/csv"
-          />
-          <p id="selected-file">선택한 파일 없음</p>
-          <button id="upload-btn" class="primary">재학습용 저장</button>
-        </div>
-        <span id="upload-badge" class="badge idle">○ 미등록</span>
-        <p id="upload-message" class="message" role="status"></p>
-        <details>
-          <summary>데이터 정보</summary>
-          <dl class="details">
-            <dt>파일</dt>
-            <dd id="data-name">—</dd>
-            <dt>시간</dt>
-            <dd id="data-time">— ps</dd>
-            <dt>Input_V</dt>
-            <dd id="data-input">— V</dd>
-            <dt>끝단 E</dt>
-            <dd id="data-e">— V</dd>
-          </dl>
-          <p id="data-top" class="sr-only"></p>
-        </details>
-      </section>
-      <section class="rail-section" id="simulation">
-        <h2>배치 시뮬레이션</h2>
-        <div class="stack">
-          <button id="normal-btn">정상 배치 실행</button
-          ><button id="drift-btn" class="danger">드리프트 배치 실행</button>
-        </div>
-        <span id="batch-state" class="badge idle">○ 실행 대기</span>
-        <div id="batch-message" class="message" role="status"></div>
-      </section>
-      <section class="rail-section help" id="help">
-        <h2>측정 안내</h2>
-        <details>
-          <summary>입력 · 전처리</summary>
-          <p>CSV: TIME, Input_V, E / 예측 최소 450행 · 재학습 저장 최소 650행.</p>
-          <div class="formula">450행 → 150점 → E</div>
-          <p>
-            3행 간격의 Input_V 150개로 시작 위치 +449행의 E를 예측합니다.
-            스케일링 없음.
-          </p>
-          <p>
-            E는 신호가 가장 약하고 늦게 도착하는 회로 끝단입니다. 단일 예측은
-            드리프트 기록에 포함하지 않습니다.
-          </p>
-        </details>
-        <details id="threshold-help">
-          <summary>12 mV 기준</summary>
-          <div class="formula">1.2 V × 1% = 12 mV</div>
-          <p>
-            DDR4 판정 기준 전압 허용 흔들림을 참고한 프로젝트 운영 기준입니다.
-          </p>
-          <p>
-            배포 게이트 ≤ 12 mV<br />드리프트 &gt; 12 mV<br />21건 미만은 판정
-            대기
-          </p>
-        </details>
-        <details>
-          <summary>배치 · 재학습 데이터</summary>
-          <p>
-            SKHY_test_answer.csv 무작위 구간 21건. 드리프트는 입력·정답 전압을
-            3배 적용합니다.
-          </p>
-          <p>
-            업로드 CSV와 별개이며 재학습은 서버 테스트 데이터의 마지막 470행을
-            사용합니다.
-          </p>
-        </details>
-      </section>
       <div class="rail-footer">
         <div class="mono">SKHY_Predictor</div>
         <div>서버 확인 · 10초 주기</div>
@@ -1118,6 +1403,48 @@
     </header>
     <main id="overview">
       <div id="connection-alert" class="banner" role="alert" hidden></div>
+      <section class="workbench" aria-label="검증 작업">
+      <section class="action-block" id="data-controls">
+        <h2><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg> 검증 데이터 업로드</h2>
+        <div class="filebox">
+          <label class="file-picker" for="csv-file">＋ CSV 선택</label
+          ><input
+            class="sr-only"
+            id="csv-file"
+            type="file"
+            accept=".csv,text/csv"
+          />
+          <p id="selected-file">선택한 파일 없음</p>
+          <button id="upload-btn" class="primary">업로드</button>
+        </div>
+        <span id="upload-badge" class="badge idle">○ 미등록</span>
+        <p id="upload-message" class="message" role="status"></p>
+        <details>
+          <summary>데이터 정보</summary>
+          <dl class="details">
+            <dt>파일</dt>
+            <dd id="data-name">—</dd>
+            <dt>시간</dt>
+            <dd id="data-time">— ps</dd>
+            <dt>Input_V</dt>
+            <dd id="data-input">— V</dd>
+            <dt>끝단 E</dt>
+            <dd id="data-e">— V</dd>
+          </dl>
+          <p id="data-top" class="sr-only"></p>
+        </details>
+      </section>
+      <section class="action-block" id="simulation">
+        <h2><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h12M4 12h8M4 18h12m1-8 4 2-4 2z"/></svg> 드리프트 시뮬레이션</h2>
+        <div class="stack">
+          <button id="normal-btn">정상 배치 실행</button
+          ><button id="drift-btn" class="danger">드리프트 배치 실행</button>
+        </div>
+        <span id="batch-state" class="badge idle">○ 실행 대기</span>
+        <div id="batch-message" class="message" role="status"></div>
+      </section>
+      </section>
+
       <section class="overview" aria-label="핵심 운영 지표">
         <div class="metric status" id="status-metric">
           <div class="metric-label">모델 상태</div>
@@ -1294,12 +1621,50 @@
           ><span><i style="background: #b5323e"></i>실패</span
           ><span><i style="background: #a9bac3"></i>대기 · 해당 없음</span>
         </div>
-        <div id="steps" class="steps" aria-live="polite"></div>
+        <div id="steps" class="steps" tabindex="0" aria-label="재학습 파이프라인 7단계, 좁은 화면에서는 좌우로 이동" aria-live="polite"></div>
         <details>
           <summary>처리 상세</summary>
           <p id="pipeline-note" class="pipeline-note">
             실제 로그와 최종 응답으로 진행 상태를 확인합니다. Registry 승격은
             현재 서빙 캐시의 교체를 보장하지 않습니다.
+          </p>
+        </details>
+      </section>
+      <section class="help" id="help">
+        <h2>측정 안내</h2>
+        <details>
+          <summary>입력 · 전처리</summary>
+          <p>CSV: TIME, Input_V, E / 최소 650행.</p>
+          <div class="formula">450행 → 150점 → E</div>
+          <p>
+            3행 간격의 Input_V 150개로 시작 위치 +449행의 E를 예측합니다.
+            스케일링 없음.
+          </p>
+          <p>
+            E는 신호가 가장 약하고 늦게 도착하는 회로 끝단입니다. 단일 예측은
+            드리프트 기록에 포함하지 않습니다.
+          </p>
+        </details>
+        <details id="threshold-help">
+          <summary>12 mV 기준</summary>
+          <div class="formula">1.2 V × 1% = 12 mV</div>
+          <p>
+            DDR4 판정 기준 전압 허용 흔들림을 참고한 프로젝트 운영 기준입니다.
+          </p>
+          <p>
+            배포 게이트 ≤ 12 mV<br />드리프트 &gt; 12 mV<br />21건 미만은 판정
+            대기
+          </p>
+        </details>
+        <details>
+          <summary>배치 · 재학습 데이터</summary>
+          <p>
+            SKHY_test_answer.csv 무작위 구간 21건. 드리프트는 입력·정답 전압을
+            3배 적용합니다.
+          </p>
+          <p>
+            업로드 CSV와 별개이며 재학습은 서버 테스트 데이터의 마지막 470행을
+            사용합니다.
           </p>
         </details>
       </section>
@@ -1358,17 +1723,19 @@
       // Local-only UI: no external libraries, requests, fonts, or synthetic measurements.
       const $ = (id) => document.getElementById(id),
         C = {
-          input: "#007b8b",
-          actual: "#7655a3",
-          error: "#b5323e",
-          grid: "#e0e7e9",
-          text: "#5d6b72",
+          input: "#cf2040",
+          actual: "#d86b1b",
+          predicted: "#7655a3",
+          error: "#bd1833",
+          grid: "#ece3dd",
+          text: "#6e6261",
         },
         LIMIT = 12;
       const state = {
         rows: [],
         start: 0,
         pred: null,
+        predictions: null,
         batch: null,
         history: [],
         connected: false,
@@ -1383,8 +1750,6 @@
         stage: [],
         cursors: {},
         version: null,
-        selectedRaw: null,
-        selectedFileName: null,
       };
       const stageTitles = [
         "데이터 수집",
@@ -1394,6 +1759,15 @@
         "fine-tuning",
         "게이트 재검증",
         "Production 승격",
+      ];
+      const stageIcons = [
+        "M4 7 12 3l8 4v10l-8 4-8-4z M4 7l8 4 8-4 M12 11v10",
+        "M4 19V9m5 10V5m5 14v-7m5 7V8M2 21h20",
+        "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5 M7 11h8",
+        "M4 12a8 8 0 0 1 14-5 M18 4v4h-4 M20 12a8 8 0 0 1-14 5 M6 20v-4h4",
+        "M5 7l7-4 7 4v10l-7 4-7-4z M5 7l7 4 7-4 M12 11v10",
+        "M12 3 5 6v6c0 5 3 8 7 9 4-1 7-4 7-9V6z M9 12l2 2 4-4",
+        "M4 15v4h16v-4 M12 16V4m0 0-4 4m4-4 4 4",
       ];
       function text(id, value) {
         $(id).textContent = value;
@@ -1415,7 +1789,7 @@
       }
       function buttons() {
         $("upload-btn").disabled =
-          state.uploading || state.busy || state.predicting || !state.selectedRaw;
+          state.uploading || state.busy || state.predicting;
         $("csv-file").disabled =
           state.uploading || state.busy || state.predicting;
         for (const id of ["normal-btn", "drift-btn"])
@@ -1426,6 +1800,7 @@
             !state.connected;
         $("predict-btn").disabled =
           !state.rows.length ||
+          state.start < 449 ||
           state.busy ||
           state.uploading ||
           state.predicting ||
@@ -1601,9 +1976,9 @@
           throw new Error(
             "필수 컬럼 TIME, Input_V, E를 정확히 포함해야 합니다.",
           );
-        if (records.length < 450)
+        if (records.length < 650)
           throw new Error(
-            `예측에는 최소 450행이 필요합니다. 현재 ${records.length}행입니다.`,
+            `최소 650행이 필요합니다. 현재 ${records.length}행입니다.`,
           );
         const decimal = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
         return records.map((r, i) => {
@@ -1621,70 +1996,53 @@
           return { t: values[0], v: values[1], e: values[2] };
         });
       }
-      async function selectCSV() {
+      async function upload() {
         const file = $("csv-file").files[0];
         if (!file) {
-          state.selectedRaw = null;
-          state.selectedFileName = null;
-          state.rows = [];
-          text("selected-file", "선택한 파일 없음");
-          buttons();
+          message("upload-message", "먼저 CSV 파일을 선택하세요.", true);
           return;
         }
-        text("selected-file", file.name);
         if (!/\.csv$/i.test(file.name)) {
-          state.selectedRaw = null;
-          state.selectedFileName = null;
-          state.rows = [];
           message("upload-message", "확장자가 .csv인 파일을 선택하세요.", true);
-          buttons();
           return;
         }
         state.uploading = true;
         buttons();
-        message("upload-message", "CSV를 브라우저에서 확인하고 있습니다.");
+        message("upload-message", "파일 형식을 검사하고 있습니다.");
         try {
           const raw = new TextDecoder("utf-8", { fatal: true }).decode(
             await file.arrayBuffer(),
           );
           const rows = parseCSV(raw);
-          state.selectedRaw = raw.replace(/^\uFEFF/, "");
-          state.selectedFileName = file.name;
+          message(
+            "upload-message",
+            `${rows.length.toLocaleString()}행 검사 완료 · 서버에 업로드 중입니다.`,
+          );
+          const form = new FormData();
+          form.append(
+            "file",
+            new Blob([raw.replace(/^\uFEFF/, "")], { type: "text/csv" }),
+            file.name,
+          );
+          const result = await api(
+            "/data/upload",
+            { method: "POST", body: form },
+            60000,
+          );
           state.rows = rows;
           state.start = 0;
           state.pred = null;
+          state.predictions = null;
           state.cursors = {};
           $("window-slider").max = rows.length - 450;
           $("start-row").max = rows.length - 449;
           setWindow(0);
-          text("row-count", rows.length.toLocaleString("ko-KR"));
-          text("data-name", file.name);
-          text(
-            "data-time",
-            `${fmt(rows[0].t * 1e12, 1)}–${fmt(rows.at(-1).t * 1e12, 1)} ps`,
-          );
-          let minInput = Infinity,
-            maxInput = -Infinity,
-            minE = Infinity,
-            maxE = -Infinity;
-          for (const row of rows) {
-            minInput = Math.min(minInput, row.v);
-            maxInput = Math.max(maxInput, row.v);
-            minE = Math.min(minE, row.e);
-            maxE = Math.max(maxE, row.e);
-          }
-          text("data-input", `${fmt(minInput)}–${fmt(maxInput)} V`);
-          text("data-e", `${fmt(minE)}–${fmt(maxE)} V`);
-          text("data-range", `Input_V ${fmt(minInput)}–${fmt(maxInput)} V`);
-          badge("upload-badge", "○ 저장 안 됨", "warn");
+          await loadData();
           message(
             "upload-message",
-            `${rows.length.toLocaleString()}행 예측 준비 완료 · 서버에는 저장하지 않았습니다.`,
+            `${result.rows.toLocaleString()}행 업로드 완료`,
           );
         } catch (e) {
-          state.selectedRaw = null;
-          state.selectedFileName = null;
-          state.rows = [];
           message(
             "upload-message",
             e instanceof TypeError
@@ -1697,53 +2055,13 @@
           buttons();
         }
       }
-
-      async function upload() {
-        if (!state.selectedRaw || !state.selectedFileName) {
-          message("upload-message", "먼저 CSV 파일을 선택하세요.", true);
-          return;
-        }
-        if (state.rows.length < 650) {
-          message(
-            "upload-message",
-            `재학습용 저장에는 최소 650행이 필요합니다. 현재 ${state.rows.length}행입니다.`,
-            true,
-          );
-          return;
-        }
-        state.uploading = true;
-        buttons();
-        message("upload-message", "재학습용 데이터를 서버에 저장하고 있습니다.");
-        try {
-          const form = new FormData();
-          form.append(
-            "file",
-            new Blob([state.selectedRaw], { type: "text/csv" }),
-            state.selectedFileName,
-          );
-          const result = await api(
-            "/data/upload",
-            { method: "POST", body: form },
-            60000,
-          );
-          await loadData();
-          message(
-            "upload-message",
-            `${result.rows.toLocaleString()}행 재학습용 저장 완료`,
-          );
-        } catch (e) {
-          message("upload-message", e.message, true);
-        } finally {
-          state.uploading = false;
-          buttons();
-        }
-      }
       function setWindow(start) {
         state.start = Math.max(
           0,
           Math.min(state.rows.length - 450, Math.round(Number(start) || 0)),
         );
         state.pred = null;
+        state.predictions = null;
         state.cursors.wave = null;
         $("window-slider").value = state.start;
         $("start-row").value = state.start + 1;
@@ -1760,38 +2078,59 @@
         text("predicted-e", "—");
         text("actual-e", fmt(last.e, 6));
         text("error-e", "—");
-        message("predict-message", "");
+        message(
+          "predict-message",
+          state.start < 449
+            ? "450행부터 구간 예측할 수 있습니다. 이전 449행의 입력 이력이 필요합니다."
+            : "",
+        );
         $("wave-empty").hidden = true;
         $("wave-empty").style.display = "none";
         drawAll();
+        buttons();
       }
       async function predict() {
-        if (!state.rows.length || state.predicting) return;
+        if (!state.rows.length || state.start < 449 || state.predicting) return;
         state.predicting = true;
         buttons();
         message("predict-message", "선택 구간의 전압을 예측하고 있습니다.");
         const start = state.start;
+        state.pred = null;
+        state.predictions = null;
+        text("predicted-e", "—");
+        text("error-e", "—");
+        drawWave();
         try {
           const r = await api(
-            "/predict",
+            "/predict/range",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                sequence: state.rows.slice(start, start + 450).map((r) => r.v),
+                sequence: state.rows
+                  .slice(start - 449, start + 450)
+                  .map((r) => r.v),
               }),
             },
             120000,
           );
-          if (!Number.isFinite(r.predicted_e))
-            throw new Error("예측 응답에 유효한 전압값이 없습니다.");
-          state.pred = r.predicted_e;
+          if (
+            !Array.isArray(r.predictions) ||
+            r.predictions.length !== 450 ||
+            !r.predictions.every(Number.isFinite)
+          )
+            throw new Error("예측 응답에 450개의 유효한 전압값이 없습니다.");
+          state.predictions = r.predictions;
+          state.pred = r.predictions.at(-1);
           state.version = r.model_version;
           text("model-version", r.model_version);
           text("predicted-e", fmt(state.pred, 6));
           const diff = (state.pred - state.rows[start + 449].e) * 1000;
           text("error-e", (diff > 0 ? "+" : "") + fmt(diff));
-          message("predict-message", `예측 완료 · ${r.model_version}`);
+          message(
+            "predict-message",
+            `450행 구간 예측 완료 · ${r.model_version}`,
+          );
           drawWave();
           await health();
         } catch (e) {
@@ -1822,12 +2161,7 @@
                     ? "로그 확인 · 응답 대기"
                     : note,
         );
-        $("status-metric").style.borderLeftColor =
-          level === "pass"
-            ? "var(--ok)"
-            : level === "fail"
-              ? "var(--fail)"
-              : "var(--warn)";
+        $("status-metric").className = `metric status ${level}`;
       }
       function renderMetric(r) {
         const score = r.window_rmse === null ? null : r.window_rmse * 1000;
@@ -1859,6 +2193,20 @@
         state.stage.forEach((s, i) => {
           const div = document.createElement("div");
           div.className = "step " + s.mode;
+          const next = state.stage[i + 1];
+          if (s.mode === "done" && next?.mode === "done")
+            div.classList.add("linked-done");
+          else if (s.mode === "done" && next?.mode === "active")
+            div.classList.add("linked-active");
+          const symbol = document.createElement("span");
+          symbol.className = "step-symbol";
+          const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          icon.setAttribute("viewBox", "0 0 24 24");
+          icon.setAttribute("aria-hidden", "true");
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", stageIcons[i]);
+          icon.append(path);
+          symbol.append(icon);
           const n = document.createElement("span");
           n.className = "step-num";
           n.textContent =
@@ -1877,7 +2225,7 @@
           b.textContent = stageTitles[i];
           const d = document.createElement("small");
           d.textContent = s.label;
-          div.append(n, b, d);
+          div.append(symbol, b, d, n);
           el.append(div);
         });
       }
@@ -2292,7 +2640,7 @@
       function drawWave() {
         const rows = state.rows.slice(state.start, state.start + 450),
           vals = rows.flatMap((r) => [r.v, r.e]);
-        if (state.pred !== null) vals.push(state.pred);
+        if (state.predictions) vals.push(...state.predictions);
         const first = rows[0]?.t * 1e12 || 0,
           last = rows.at(-1)?.t * 1e12 || 1;
         const ch = chart("wave", vals, {
@@ -2311,6 +2659,13 @@
           rows.map((r) => [r.t * 1e12, r.e]),
           C.actual,
         );
+        if (state.predictions)
+          line(
+            ch,
+            rows.map((r, i) => [r.t * 1e12, state.predictions[i]]),
+            C.predicted,
+            2.2,
+          );
         rows.forEach((r, i) => {
           if (i % 3 === 0) dot(ch, r.t * 1e12, r.v, C.input, 2.2);
         });
@@ -2368,7 +2723,7 @@
         );
         const a = ch.x(state.start + 1),
           b = ch.x(state.start + 450);
-        ch.ctx.fillStyle = "#006b7819";
+        ch.ctx.fillStyle = "#cc173719";
         ch.ctx.fillRect(a, ch.p.t, Math.max(2, b - a), ch.ph);
         ch.ctx.strokeStyle = C.input;
         ch.ctx.strokeRect(a, ch.p.t, Math.max(2, b - a), ch.ph);
@@ -2441,9 +2796,13 @@
           index = Math.max(0, Math.min(n - 1, index));
           state.cursors[key] = index;
           if (key === "wave") {
-            const p = r[index];
+            const p = r[index],
+              predicted = state.predictions?.[index],
+              error = Number.isFinite(predicted)
+                ? (predicted - p.e) * 1000
+                : null;
             tip.textContent =
-              `第 ${state.start + index + 1}행 · ${fmt(p.t * 1e12, 2)} ps\nInput_V ${fmt(p.v, 6)} V\n실제 E ${fmt(p.e, 6)} V\n${index % 3 === 0 ? "모델 입력점 " + (index / 3 + 1) + " / 150" : "모델 입력에서 제외된 행"}${index === 449 && state.pred !== null ? "\n예측 E " + fmt(state.pred, 6) + " V" : ""}`.replace(
+              `第 ${state.start + index + 1}행 · ${fmt(p.t * 1e12, 2)} ps\nInput_V ${fmt(p.v, 6)} V\n실제 E ${fmt(p.e, 6)} V${Number.isFinite(predicted) ? "\n예측 E " + fmt(predicted, 6) + " V\n차이 " + (error > 0 ? "+" : "") + fmt(error) + " mV" : "\n예측 전"}`.replace(
                 "第 ",
                 "",
               );
@@ -2505,7 +2864,12 @@
           tip.style.display = "none";
         });
       }
-      $("csv-file").addEventListener("change", selectCSV);
+      $("csv-file").addEventListener("change", () =>
+        text(
+          "selected-file",
+          $("csv-file").files[0]?.name || "선택한 파일 없음",
+        ),
+      );
       $("upload-btn").addEventListener("click", upload);
       $("predict-btn").addEventListener("click", predict);
       $("window-slider").addEventListener("input", (e) =>

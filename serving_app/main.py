@@ -5,7 +5,7 @@ Day1: app 생성, 라우터(predict, health) 등록, startup 이벤트에서 로
 Day2: data 라우터 등록 (HAIC 데이터 업로드)
 Day3: "aiops" 로거를 logs/aiops.log 파일로 연결(로깅 설정) + logs 라우터(로그 파일 조회) 등록
 
-정적 대시보드: serving_app/static/index.html 이 /health · /predict · /predict/batch-test ·
+정적 대시보드: serving_app/static/skhy.html 이 /health · /predict · /predict/batch-test ·
 /data/upload · /logs 를 호출하는 확인용 화면입니다. API 라우터를 먼저 등록한 뒤
 StaticFiles를 "/"에 마지막으로 mount해야, /predict 같은 API 경로가 정적 파일보다
 먼저 매칭됩니다(Starlette는 등록 순서대로 라우트를 검사합니다).
@@ -76,7 +76,7 @@ _STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 @app.get("/", include_in_schema=False)
 def dashboard():
-    return FileResponse(os.path.join(_STATIC_DIR, "voltage-dashboard-v3.html"))
+    return FileResponse(os.path.join(_STATIC_DIR, "skhy.html"))
 
 
 app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="static")  # 대시보드 UI

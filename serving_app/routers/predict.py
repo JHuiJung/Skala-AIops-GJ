@@ -29,10 +29,13 @@ from data.voltage_preprocessing import (
 from serving_app import model_loader
 from serving_app.schemas import (
     RAW_LENGTH,
+    RANGE_PREDICTION_COUNT,
     BatchTestRequest,
     BatchTestResponse,
     PredictRequest,
     PredictResponse,
+    RangePredictRequest,
+    RangePredictResponse,
 )
 from serving_app.monitoring.drift_detector import WINDOW_SIZE, compute_rmse
 from serving_app.monitoring.retrain_trigger import check_and_trigger
@@ -93,6 +96,27 @@ def predict(req: PredictRequest):
     sequence = req.sequence[::INTERVAL]  # 연속 450행 -> 학습 때와 같은 3행 간격 150개
     predicted_e = model.predict_one(sequence)
     return PredictResponse(predicted_e=predicted_e, model_version=model.version)
+
+
+@router.post("/predict/range", response_model=RangePredictResponse)
+def predict_range(req: RangePredictRequest):
+    """선택한 450행 각각의 E를 직전 450행 Input_V로 예측한다.
+
+    요청의 899행에서 1행씩 밀린 450개 시퀀스를 만들고, 모델에는
+    하나의 배치로 전달한다. 각 시퀀스는 학습과 동일하게 0, 3, ..., 447
+    오프셋의 150개 Input_V를 사용한다.
+    """
+    raw = np.asarray(req.sequence, dtype="float32")
+    starts = np.arange(RANGE_PREDICTION_COUNT)[:, None]
+    offsets = np.arange(0, SEQUENCE_LENGTH * INTERVAL, INTERVAL)[None, :]
+    sequences = raw[starts + offsets]
+
+    model = model_loader.get_model()
+    predictions = model.predict_many(sequences)
+    return RangePredictResponse(
+        predictions=predictions,
+        model_version=model.version,
+    )
 
 
 @router.post("/predict/csv")
