@@ -1,0 +1,2956 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SK하이닉스 | 전압 예측 대시보드</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --bg: #f6f3f1;
+        --surface: #fff;
+        --text: #302a2a;
+        --muted: #6e6261;
+        --line: #e5dcd7;
+        --accent: #cc1737;
+        --brand-red: #ea002c;
+        --brand-orange: #f47725;
+        --ok: #237347;
+        --warn: #a75116;
+        --fail: #bd1833;
+        --input: #cf2040;
+        --actual: #d86b1b;
+        --mono: Consolas, "SFMono-Regular", monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          500 14px/1.45 Pretendard,
+          "Malgun Gothic",
+          "Apple SD Gothic Neo",
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      h2 {
+        font-size: 16px;
+      }
+      h3 {
+        font-size: 15px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        border: 1px solid #b8c6d6;
+        border-radius: 3px;
+        padding: 8px 12px;
+        background: white;
+        color: var(--text);
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      button:hover {
+        border-color: var(--accent);
+        background: #edf2f8;
+      }
+      button.primary {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      button.danger {
+        color: var(--fail);
+        border-color: #c58e95;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      input[type="number"],
+      select {
+        padding: 5px;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: white;
+        color: var(--text);
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      :focus-visible {
+        outline: 3px solid var(--brand-orange);
+        outline-offset: 2px;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .mono,
+      .num {
+        font-family: var(--mono);
+      }
+      .num {
+        letter-spacing: -0.04em;
+      }
+      .muted,
+      .tag {
+        color: var(--muted);
+      }
+      small {
+        font-size: 14px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 7px;
+        border: 1px solid currentColor;
+        border-radius: 2px;
+        font-weight: 700;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+      .pass {
+        color: var(--ok);
+        background: #eff8f2;
+      }
+      .warn {
+        color: var(--warn);
+        background: #fff7e6;
+      }
+      .fail {
+        color: var(--fail);
+        background: #fff0f1;
+      }
+      .idle {
+        color: var(--muted);
+        background: #f5f7f8;
+      }
+      .rail {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 210px;
+        background: #e7edf4;
+        border-right: 1px solid #c9d4e1;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+        z-index: 5;
+      }
+      .rail-brand {
+        padding: 18px 20px 15px;
+        border-top: 4px solid var(--brand-red);
+        border-bottom: 1px solid #c9d4e1;
+        background: #fff;
+      }
+      .sk-logo {
+        display: block;
+        width: 156px;
+        height: 82px;
+        margin: -6px 0 5px;
+      }
+      .brand-product {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+      }
+      .rail nav {
+        padding: 14px 10px;
+        display: grid;
+        gap: 5px;
+      }
+      .rail nav a {
+        padding: 10px 12px;
+        font-weight: 700;
+        border-left: 3px solid transparent;
+      }
+      .rail nav a:first-child {
+        background: white;
+        color: var(--accent);
+        border-left-color: var(--brand-red);
+      }
+      .rail nav a:hover {
+        background: #f5f8fa;
+      }
+      .rail nav b {
+        font-family: var(--mono);
+        margin-right: 9px;
+        font-size: 14px;
+        color: #7b8c96;
+      }
+      .rail-section {
+        padding: 15px 17px;
+        border-top: 1px solid #c8d3d9;
+      }
+      .rail-section h2 {
+        margin-bottom: 12px;
+      }
+      .file-picker {
+        display: block;
+        background: white;
+        border: 1px dashed #8ca3ad;
+        padding: 13px 6px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .filebox:focus-within .file-picker {
+        outline: 2px solid var(--accent);
+      }
+      #selected-file {
+        overflow-wrap: anywhere;
+        margin: 8px 0;
+        color: var(--muted);
+      }
+      .filebox button {
+        width: 100%;
+      }
+      .message {
+        color: var(--muted);
+        font-size: 14px;
+        overflow-wrap: anywhere;
+        margin-top: 8px;
+      }
+      .message:empty {
+        display: none;
+      }
+      .message.error {
+        color: var(--fail);
+        background: #fff0f1;
+        padding: 8px;
+        border-left: 3px solid var(--fail);
+      }
+      .details {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 7px;
+        margin: 10px 0 0;
+        font-size: 14px;
+      }
+      .details dt {
+        color: var(--muted);
+      }
+      .details dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .rail details {
+        margin-top: 12px;
+      }
+      .rail-footer {
+        margin-top: auto;
+        padding: 18px 17px;
+        color: var(--muted);
+        font-size: 14px;
+        border-top: 1px solid #c8d3d9;
+      }
+      .rail-footer .mono {
+        font-size: 14px;
+        color: var(--text);
+      }
+      .rail-section .badge {
+        margin-top: 8px;
+      }
+      .rail-section .stack {
+        display: grid;
+        gap: 8px;
+      }
+      .help details {
+        background: transparent;
+        margin: 10px 0;
+      }
+      .help p {
+        margin-top: 8px;
+      }
+      .help .formula {
+        font-family: var(--mono);
+        color: var(--accent);
+        font-weight: 700;
+        margin: 8px 0;
+      }
+      header {
+        margin-left: 210px;
+        min-height: 79px;
+        padding: 16px 22px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .heading {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+      .heading .label {
+        border-left: 3px solid var(--accent);
+        padding-left: 13px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .system {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .system dl {
+        margin: 0;
+      }
+      .system dt {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .system dd {
+        margin: 0;
+        font-weight: 700;
+      }
+      .system .mono {
+        font-size: 14px;
+      }
+      main {
+        margin-left: 210px;
+        padding: 16px 20px 22px;
+        max-width: 2100px;
+      }
+      .overview {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr 0.85fr 0.9fr;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .metric {
+        background: white;
+        border: 1px solid var(--line);
+        padding: 13px 16px;
+        min-width: 0;
+        position: relative;
+        min-height: 146px;
+      }
+      .metric.status {
+        border-left: 4px solid var(--warn);
+      }
+      .metric-label {
+        color: var(--muted);
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .metric-value {
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+      .metric-value small {
+        font: 500 15px/1 var(--mono);
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+      #trust-title {
+        font-size: 27px;
+        font-weight: 700;
+        margin-top: 8px;
+        line-height: 1.1;
+      }
+      .note {
+        color: var(--muted);
+        margin-top: 7px;
+        font-size: 14px;
+      }
+      .gauge {
+        height: 7px;
+        background: #e5ecef;
+        margin: 12px 0 5px;
+        position: relative;
+      }
+      .gauge:after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -4px;
+        height: 15px;
+        border-left: 2px dashed var(--fail);
+      }
+      #gauge-fill {
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+      }
+      .gauge-labels {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .metric a {
+        position: absolute;
+        right: 13px;
+        top: 13px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .metric .note-short {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .metric.status .badge {
+        font-size: 14px;
+      }
+      .banner {
+        background: #fff0f1;
+        color: var(--fail);
+        border: 1px solid #ce9ba2;
+        padding: 10px 14px;
+        margin-bottom: 14px;
+      }
+      .banner[hidden] {
+        display: none;
+      }
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+      .panel {
+        background: white;
+        border: 1px solid var(--line);
+        min-width: 0;
+        scroll-margin-top: 12px;
+      }
+      .panel-head {
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border-bottom: 1px solid #e7ecef;
+      }
+      .panel-head .tag {
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .section-no {
+        font-family: var(--mono);
+        color: var(--accent);
+        margin-right: 6px;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 9px 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .legend span {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .swatch {
+        display: inline-block;
+        background: var(--input);
+        width: 18px;
+        height: 2px;
+      }
+      .swatch.purple {
+        background: var(--actual);
+      }
+      .swatch.point {
+        height: 6px;
+        width: 6px;
+        border-radius: 50%;
+      }
+      .swatch.pred {
+        background: #7655a3;
+      }
+      .plot {
+        position: relative;
+        height: 230px;
+        margin: 0 6px;
+      }
+      .plot canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .empty-plot {
+        position: absolute;
+        inset: 30px 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--muted);
+        pointer-events: none;
+      }
+      .tooltip {
+        position: absolute;
+        display: none;
+        pointer-events: none;
+        z-index: 3;
+        max-width: 310px;
+        background: white;
+        border: 1px solid #8399a3;
+        padding: 8px 10px;
+        white-space: pre-line;
+        font-family: var(--mono);
+        font-size: 14px;
+      }
+      .plot.overview-plot {
+        height: 50px;
+        margin: 0 10px;
+        cursor: crosshair;
+      }
+      .window-controls {
+        padding: 7px 13px 9px;
+        border-top: 1px solid var(--line);
+      }
+      .window-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .window-row label {
+        white-space: nowrap;
+      }
+      .window-row input {
+        width: 75px;
+      }
+      .window-row button {
+        padding: 7px 10px;
+      }
+      #window-label {
+        font-size: 14px;
+      }
+      #window-slider {
+        display: block;
+        height: 13px;
+        margin: 9px 0 3px;
+      }
+      .window-hint {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .readouts {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        background: #edf3f9;
+        border-top: 1px solid var(--line);
+        margin-top: auto;
+      }
+      .readout {
+        padding: 10px 13px;
+        border-right: 1px solid var(--line);
+      }
+      .readout:last-child {
+        border: 0;
+      }
+      .readout strong {
+        display: block;
+        font: 700 23px/1.4 var(--mono);
+        letter-spacing: -0.04em;
+      }
+      .readout strong small {
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+      #waveform {
+        display: flex;
+        flex-direction: column;
+      }
+      .compare-stack {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 14px;
+      }
+      .comparison {
+        display: flex;
+        flex-direction: column;
+      }
+      .comparison .plot {
+        height: 162px;
+        flex: 1;
+        min-height: 145px;
+      }
+      .comparison .legend {
+        padding: 7px 13px;
+      }
+      .comparison .panel-head {
+        padding: 11px 13px;
+      }
+      .comparison .chart-caption {
+        font-size: 14px;
+        padding: 0 13px 8px;
+        color: var(--muted);
+      }
+      .comparison .plot canvas {
+        position: absolute;
+        inset: 0;
+      }
+      .pipeline {
+        margin-top: 14px;
+      }
+      .pipeline .panel-head {
+        border: 0;
+        padding-bottom: 5px;
+      }
+      .steps {
+        display: flex;
+        overflow-x: auto;
+        padding: 18px 12px 19px;
+        scrollbar-color: #c9bab2 transparent;
+      }
+      .step {
+        position: relative;
+        flex: 1 0 140px;
+        min-width: 0;
+        padding: 0 5px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 25px;
+        left: calc(50% + 27px);
+        width: calc(100% - 54px);
+        border-top: 2px solid #d8cbc5;
+      }
+      .step.linked-done::after {
+        border-color: var(--ok);
+      }
+      .step.linked-active::after {
+        border-color: var(--brand-orange);
+      }
+      .step-symbol {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 11px;
+        border: 2px solid #b9aaa2;
+        border-radius: 50%;
+        background: #f5f0ed;
+        color: #7b6c65;
+      }
+      .step-symbol svg {
+        width: 25px;
+        height: 25px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .step.done .step-symbol {
+        border-color: var(--ok);
+        background: #eaf6ee;
+        color: var(--ok);
+      }
+      .step.active .step-symbol {
+        border-color: var(--brand-orange);
+        background: #fff1e3;
+        color: #aa4a13;
+        box-shadow: 0 0 0 3px #fbd9c3;
+      }
+      .step.failed .step-symbol {
+        border-color: var(--fail);
+        background: #fff0f1;
+        color: var(--fail);
+      }
+      .step-num {
+        font-family: var(--mono);
+        font-size: 14px;
+        font-weight: 700;
+        display: block;
+        margin-top: 5px;
+        color: var(--muted);
+      }
+      .step.done .step-num {
+        color: var(--ok);
+      }
+      .step.active .step-num {
+        color: var(--warn);
+      }
+      .step.failed .step-num {
+        color: var(--fail);
+      }
+      .step b {
+        word-break: keep-all;
+        display: block;
+        margin: 0 0 3px;
+        font-size: 14px;
+        line-height: 1.35;
+        color: var(--text);
+      }
+      .step small {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.4;
+        min-height: 20px;
+      }
+      .pipeline-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 5px 14px 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .pipeline-legend span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pipeline-legend i {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .pipeline details {
+        border-top: 1px solid #e8edef;
+        padding: 6px 14px;
+      }
+      .pipeline-note {
+        padding: 7px 0;
+        color: var(--muted);
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 14px;
+      }
+      details[open] > summary {
+        color: var(--accent);
+      }
+      .batch-controls {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .record-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .record-panel > summary {
+        padding: 13px 15px;
+        color: var(--text);
+      }
+      .record-panel .panel-head {
+        border-top: 1px solid var(--line);
+      }
+      .record-panel .panel-head h2 {
+        font-size: 14px;
+      }
+      .table-wrap {
+        overflow: auto;
+        max-height: 260px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 9px 12px;
+        border-bottom: 1px solid #e6ecef;
+        text-align: left;
+      }
+      th {
+        background: #f5f8f9;
+        position: sticky;
+        top: 0;
+        color: var(--muted);
+      }
+      td.empty {
+        padding: 25px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .logs {
+        height: 230px;
+        overflow: auto;
+        background: #f8fafb;
+        padding: 6px 12px;
+        font: 500 14px/1.5 var(--mono);
+      }
+      .logline {
+        display: grid;
+        grid-template-columns: 45px 1fr;
+        gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid #e4eaed;
+        overflow-wrap: anywhere;
+      }
+      .loglevel {
+        font-weight: 700;
+      }
+      .logline.WARN .loglevel {
+        color: var(--warn);
+      }
+      .logline.OK .loglevel {
+        color: var(--ok);
+      }
+      .logline.ERROR .loglevel {
+        color: var(--fail);
+      }
+      #log-message {
+        padding: 8px 12px;
+      }
+      .foot {
+        color: var(--muted);
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        padding-top: 11px;
+      }
+      .sr-only {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+      }
+      .compact-info {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .compact-info strong {
+        color: var(--text);
+      }
+      /* 브랜드 색은 조작과 계측 신호에, 상태 색은 판정에 사용한다. */
+      button {
+        border-color: #d6c8c1;
+      }
+      button:hover {
+        background: #fff3ee;
+      }
+      button.primary:hover {
+        background: #ad1230;
+        color: #fff;
+      }
+      button.danger {
+        border-color: #e2a9ac;
+      }
+      .rail {
+        width: 196px;
+        background: #fcfaf8;
+        border-color: var(--line);
+      }
+      .rail-brand {
+        border-top: 0;
+        border-color: var(--line);
+        padding: 16px 18px 18px;
+      }
+      .sk-logo {
+        width: 155px;
+        height: 81px;
+      }
+      .rail nav {
+        gap: 3px;
+        padding: 19px 10px;
+      }
+      .rail nav a,
+      .rail nav a:first-child {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 11px;
+        border: 0;
+        border-radius: 4px;
+        color: var(--muted);
+        background: transparent;
+      }
+      .rail nav a:first-child {
+        color: var(--accent);
+        background: #fcebef;
+      }
+      .rail nav a:hover {
+        background: #fff1eb;
+        color: var(--accent);
+      }
+      .ui-icon {
+        display: inline-block;
+        flex: none;
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: -3px;
+      }
+      .rail-footer {
+        padding: 15px 18px;
+        border-color: var(--line);
+      }
+      .rail-footer div:nth-child(2),
+      .rail-footer #health-time {
+        font-size: 14px;
+      }
+      header,
+      main {
+        margin-left: 196px;
+      }
+      header {
+        border-bottom-color: var(--line);
+      }
+      .heading .label {
+        border: 0;
+        padding-left: 0;
+      }
+      .heading .label::before {
+        content: "·";
+        color: var(--brand-orange);
+        font-weight: 800;
+        margin-right: 11px;
+      }
+      .workbench {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: 0;
+        margin-bottom: 14px;
+        background: white;
+        border: 1px solid var(--line);
+      }
+      .action-block {
+        min-width: 0;
+        padding: 12px 17px;
+      }
+      .action-block + .action-block {
+        border-left: 1px solid var(--line);
+      }
+      .action-block h2 {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 9px;
+      }
+      .action-block h2 .ui-icon {
+        color: var(--accent);
+      }
+      .action-block .filebox {
+        display: grid;
+        grid-template-columns: auto minmax(90px, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+      }
+      .action-block .file-picker {
+        padding: 8px 12px;
+        border-color: #dcbbb6;
+        border-radius: 3px;
+        white-space: nowrap;
+      }
+      .action-block #selected-file {
+        margin: 0;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .action-block .filebox button {
+        width: auto;
+      }
+      .action-block .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .action-block .badge {
+        margin-top: 8px;
+      }
+      .action-block details {
+        margin-top: 6px;
+      }
+      .action-block details[open] {
+        padding-bottom: 7px;
+      }
+      .action-block .details {
+        grid-template-columns: 58px 1fr;
+      }
+      .overview {
+        gap: 0;
+        background: white;
+        border: 1px solid var(--line);
+      }
+      .metric {
+        border: 0;
+        border-right: 1px solid var(--line);
+        min-height: 146px;
+      }
+      .metric:last-child {
+        border-right: 0;
+      }
+      .metric.status {
+        border-left: 0;
+        background: #fffaf8;
+      }
+      .metric.status.pass {
+        background: #f1f8f3;
+      }
+      .metric.status.fail {
+        background: #fff0f1;
+      }
+      .metric.status.warn {
+        background: #fff5e8;
+      }
+      .metric-label {
+        color: #5b4f4b;
+      }
+      .gauge {
+        background: #f1e6e2;
+      }
+      .readouts {
+        background: #fff7f1;
+      }
+      .message.error {
+        border-left: 0;
+        border: 1px solid #e8bac1;
+      }
+      .panel-head {
+        border-bottom-color: var(--line);
+      }
+      .section-no {
+        color: var(--accent);
+      }
+      .help {
+        margin: 14px 0;
+        padding: 12px 15px;
+        background: #fffaf6;
+        border: 1px solid var(--line);
+      }
+      .help h2 {
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+      .help > details {
+        display: inline-block;
+        vertical-align: top;
+        margin: 0 18px 4px 0;
+        max-width: 350px;
+      }
+      .help details[open] {
+        display: block;
+        max-width: 760px;
+        margin-bottom: 9px;
+      }
+      .help p {
+        margin-top: 8px;
+      }
+      .help .formula {
+        font-family: var(--mono);
+        color: var(--accent);
+        font-weight: 700;
+        margin-top: 7px;
+      }
+      .logs {
+        background: #fdfaf8;
+      }
+      th {
+        background: #fbf5f1;
+      }
+      .badge.warn {
+        background: #fff3df;
+      }
+      .badge.fail {
+        background: #fff0f1;
+      }
+      .tooltip {
+        border-color: #ad968c;
+      }
+      .banner {
+        border-color: #e8bac1;
+      }
+      .rail-section,
+      .rail nav b {
+        color: var(--muted);
+      }
+      @media (min-width: 1600px) {
+        .rail {
+          width: 230px;
+        }
+        header,
+        main {
+          margin-left: 230px;
+        }
+        main {
+          padding: 20px 26px;
+        }
+        .metric-value {
+          font-size: 43px;
+        }
+        .metric {
+          padding: 16px 20px;
+        }
+        .plot {
+          height: 270px;
+        }
+        .comparison .plot {
+          min-height: 180px;
+        }
+        .readout strong {
+          font-size: 28px;
+        }
+        .steps {
+          padding-bottom: 16px;
+        }
+        .step b {
+        word-break: keep-all;
+          font-size: 15px;
+        }
+      }
+      @media (max-width: 1150px) {
+        .rail {
+          width: 185px;
+        }
+        header,
+        main {
+          margin-left: 185px;
+        }
+        header {
+          padding: 13px 16px;
+        }
+        .heading .label {
+          display: none;
+        }
+        .system {
+          gap: 10px;
+        }
+        main {
+          padding: 14px;
+        }
+        .overview {
+          gap: 8px;
+        }
+        .metric {
+          padding: 12px;
+        }
+        .metric-value {
+          font-size: 30px;
+        }
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+        .compare-stack {
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto;
+        }
+        .comparison .plot {
+          height: 190px;
+          flex: auto;
+        }
+        .plot {
+          height: 260px;
+        }
+        .steps {
+          grid-template-columns: repeat(4, 1fr);
+          row-gap: 14px;
+        }
+        .record-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 760px) {
+        .rail {
+          position: relative;
+          width: auto;
+          height: auto;
+          overflow: visible;
+          display: block;
+        }
+        .rail-brand {
+          padding: 12px 16px;
+        }
+        .sk-logo {
+          width: 148px;
+          height: 78px;
+        }
+        .rail nav {
+          display: flex;
+          padding: 6px;
+          flex-wrap: wrap;
+        }
+        .rail-section {
+          padding: 12px 16px;
+        }
+        .rail-section.help,
+        .rail-footer {
+          display: none;
+        }
+        .rail-section .stack {
+          grid-template-columns: 1fr 1fr;
+        }
+        .rail-section .filebox {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+        .file-picker {
+          padding: 8px;
+        }
+        #selected-file {
+          grid-column: 1/-1;
+          grid-row: 2;
+        }
+        .rail-section details {
+          margin: 7px 0;
+        }
+        .rail-section h2 {
+          margin-bottom: 8px;
+        }
+        header,
+        main {
+          margin-left: 0;
+        }
+        .system dl {
+          display: none;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        .overview {
+          grid-template-columns: 1fr 1fr;
+        }
+        .metric {
+          min-height: 145px;
+        }
+        .compare-stack {
+          grid-template-columns: 1fr;
+        }
+        .window-row {
+          flex-wrap: wrap;
+        }
+        .readout strong {
+          font-size: 20px;
+        }
+        .steps {
+          grid-template-columns: 1fr 1fr;
+        }
+        .foot {
+          display: block;
+        }
+        .heading .label {
+          display: none;
+        }
+        .legend {
+          gap: 9px;
+        }
+        .record-panel .panel-head {
+          flex-wrap: wrap;
+        }
+      }
+      @media (min-width: 1600px) {
+        .rail {
+          width: 210px;
+        }
+        header,
+        main {
+          margin-left: 210px;
+        }
+      }
+      @media (max-width: 1150px) {
+        .rail {
+          width: 178px;
+        }
+        header,
+        main {
+          margin-left: 178px;
+        }
+        .workbench {
+          grid-template-columns: 1fr;
+        }
+        .action-block + .action-block {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+      }
+      @media (max-width: 760px) {
+        .rail {
+          position: relative;
+          width: auto;
+        }
+        .rail-brand {
+          padding: 10px 16px;
+        }
+        .rail nav {
+          padding: 6px 12px;
+        }
+        .rail-footer {
+          display: none;
+        }
+        header,
+        main {
+          margin-left: 0;
+        }
+        .action-block .filebox {
+          grid-template-columns: auto 1fr auto;
+        }
+        .overview {
+          grid-template-columns: 1fr 1fr;
+        }
+        .metric:nth-child(2) {
+          border-right: 0;
+        }
+        .metric:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--line);
+        }
+      }
+      @media (max-width: 480px) {
+        .action-block .filebox {
+          grid-template-columns: 1fr auto;
+        }
+        .action-block #selected-file {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="rail">
+      <div class="rail-brand">
+        <svg class="sk-logo" role="img" aria-label="SK hynix" width="512px" height="269px" viewBox="0 0 512 269" version="1.1" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid">
+            <title>SK Hynix</title>
+            <g>
+                <path d="M45.4183793,177.262781 L43.0843172,176.167165 C35.5908088,172.618666 29.7834535,169.397985 29.7834535,163.44794 C29.7834535,158.430736 33.8011405,154.784716 41.7211562,154.784716 C44.6367002,154.784716 47.02039,155.129829 49.4873972,155.578474 C50.7753921,155.801889 52.1466318,155.988976 53.2807976,155.988976 C60.0902131,155.988976 63.9830082,152.001043 66.584505,144.420852 L67.7879513,140.828198 L66.6506095,140.363814 C63.2629455,139.018965 53.1915328,135.407212 40.6253523,135.407212 C17.1600492,135.407212 4.77380962,150.459008 4.78020328,166.068431 C4.78020328,173.943528 7.24721044,179.652955 11.1111046,184.15122 C15.7821759,189.574682 22.3192931,193.23962 28.5923463,196.35168 L29.8026163,196.947434 C39.4719511,201.689276 48.192954,205.194344 48.192954,212.223734 C48.1993659,218.464815 41.7531245,222.008391 33.1346562,222.008391 C21.3251172,222.008391 11.0085699,215.26726 9.69498214,214.453522 L0,232.619682 L1.20993056,233.321363 C5.10067293,235.525781 16.8775234,241.520125 34.7558297,241.520125 C56.6512176,241.507229 73.2345662,228.954409 73.2345662,209.634848 C73.2345662,190.417912 57.8687007,183.292435 45.4183793,177.262781 Z M131.066812,186.232791 L170.782267,137.533648 L142.485484,137.533648 L110.805403,179.562318 L110.331146,179.562318 L110.331146,137.533648 L87.0004007,137.533648 L87.0132244,240.69894 L88.3973059,240.69894 C98.4831548,240.69894 110.484939,236.027756 110.484939,219.188098 L110.484939,195.498508 L110.959196,195.498508 L143.254431,239.410945 L172.941707,239.410945 L131.066812,186.232791 Z" fill="#E31837"></path>
+                <g transform="translate(110.704069, 0.000000)">
+                    <path d="M95.4267314,63.3521489 C127.619449,64.6528585 153.570976,76.2317354 171.346161,87.5672173 L169.446935,88.6148382 C160.656341,93.4058812 147.161246,99.7985167 127.228564,99.8829995 C121.64098,99.8957142 118.552425,99.4534257 115.316508,99.459783 C100.68753,99.5110049 98.4127324,107.738661 97.9706254,118.676719 L97.9270367,119.953542 L97.9270367,119.953542 L97.8808062,121.227561 C97.4734552,132.041466 96.6587812,142.423809 92.3510004,149.120336 L91.7891446,147.551642 C89.9195316,142.418694 87.152459,135.731116 82.3869034,127.968229 L81.9783465,127.260882 C78.6018697,121.479064 75.9527326,118.514852 75.7740634,118.305269 L76.5256544,116.155846 L76.5256544,116.155846 L95.4267314,63.3521489 L95.4267314,63.3521489 Z M61.4014134,27.0211 C73.0013285,35.9600022 84.7057882,47.5486106 94.7980949,62.4198684 L95.4267494,63.353602 L58.5819924,108.56693 L57.8772228,108.464987 C56.3523463,108.263264 52.460332,107.840588 46.7916704,107.854909 C43.3699014,107.862175 40.2557174,108.027465 37.4106674,108.278126 C44.4464154,103.876129 50.9508714,95.9240179 50.9054624,84.1208181 C50.8734214,68.4411004 41.0821344,61.18103 41.0567054,49.2112682 C41.0118404,36.0305259 53.1866354,28.5722884 61.4014134,27.0211 Z" fill="#E31837"></path>
+                    <path d="M14.5329268,112.065895 C12.7348807,112.071955 11.8067128,110.922838 11.5186409,108.915541 L11.4187663,108.049065 C10.5642711,100.269614 2.6760034,28.1380202 0.866915815,11.3610298 L0.609177051,8.97719301 C0.390992668,7.05335022 0.00587170544,4.10405644 7.10542736e-15,2.9925741 C-0.00634048297,1.03179201 1.27517002,0.00644555929 2.78105793,0 L3.06605718,0.00567796096 C8.09726711,0.209726513 31.4481984,5.90976011 56.1899285,23.2602858 L55.7462761,23.3895838 C48.3897729,25.6103828 35.7566628,33.1853633 35.8131795,48.5390263 C35.8640381,62.411991 45.7901001,70.0435111 45.8413584,83.9548013 C45.9249118,106.580719 19.9154598,112.052927 14.5329268,112.065895 Z M94.4668469,155.138003 C94.8640892,156.188778 95.2357205,157.072265 95.6138908,157.687473 C96.1969488,158.668318 96.9467504,159.116964 97.8822587,159.116964 C98.4653166,159.110607 99.1829683,158.911713 99.98401,158.553887 L186.500696,118.328775 C188.193479,117.544289 189.539976,116.92129 190.468336,116.493249 L191.740833,115.893681 C193.435656,115.1036 195.571704,114.123181 196.389117,113.641714 C197.4784,113.020512 197.978268,112.115955 197.978268,111.193961 C197.971856,110.674476 197.823875,110.154991 197.529803,109.680916 L197.404365,109.487019 C195.685405,106.924859 188.312572,99.2107105 176.191881,90.8036433 L174.09279,91.9543044 C164.17201,97.3524792 149.316163,104.663472 127.928451,104.747084 L126.979442,104.745433 C122.295338,104.717599 120.894477,104.403314 117.521724,104.394578 L117.188996,104.394706 C105.98818,104.431033 103.187995,109.226276 102.777893,119.04944 L102.73062,120.664026 C102.688887,122.254766 102.64692,124.131562 102.566466,126.142767 L102.504403,127.555505 C102.089109,136.185231 100.822913,147.458846 94.4668469,155.138003 Z" fill="#F58025"></path>
+                </g>
+                <path d="M293.342681,182.35482 C300.687504,182.35482 302.934343,186.441437 304.836344,190.970408 L319.069941,225.293496 L319.460826,225.293496 L333.064548,183.431389 L347.174496,183.431389 L325.375195,242.095192 C316.833614,265.18247 305.831456,268.168417 296.392783,268.168417 C289.722273,268.168417 284.820318,265.784781 284.307699,265.522133 L287.870437,254.718487 L288.136694,254.855168 C289.084006,255.330236 292.274227,256.807505 295.771236,256.807505 C303.268344,256.807505 307.97166,252.642365 312.130298,239.596216 L286.345387,183.431934 L286.843674,183.285002 L287.506821,183.109706 C288.797572,182.787993 290.970349,182.35482 293.342681,182.35482 Z M229.897912,154.017478 C236.850361,154.017478 241.329408,159.073371 241.329408,165.807963 L241.329408,189.856288 L242.212954,189.105041 L242.638713,188.75857 C245.304565,186.62611 251.506247,182.352822 259.508301,182.352822 C270.452789,182.352822 278.526598,188.062068 278.526598,201.973358 L278.526598,239.414033 L263.916855,239.414033 L263.916855,205.978294 C263.916855,199.820403 260.520715,195.046593 254.093709,195.046593 C247.980683,195.046593 242.796789,199.871625 241.329408,201.082787 L241.329408,239.414033 L226.822182,239.414033 L226.822182,154.017478 L229.897912,154.017478 Z M388.710381,182.593129 L389.157034,182.597742 C396.485775,182.748119 408.926206,186.634619 409.179329,202.935948 L409.183253,203.444081 L409.183253,239.410945 L395.092541,239.410945 L395.092541,206.97476 C395.092541,200.131367 391.331163,194.876943 384.077559,194.876943 C379.635236,194.876943 375.537038,197.937505 373.679898,199.52439 L373.282885,199.870445 L372.735774,200.368405 L372.735774,239.410945 L358.632239,239.410945 L358.631136,201.319808 L358.622512,200.266416 C358.541321,193.71784 357.965766,189.492163 357.49808,186.889712 L357.320441,185.945143 L357.036694,184.548281 L357.385687,184.466987 C358.258452,184.275405 360.512594,183.83626 362.310299,183.83626 C368.46819,183.83626 371.153072,187.706602 371.755383,189.994151 L372.079853,189.679293 C374.275804,187.588857 380.349331,182.593129 388.710381,182.593129 Z M438.919953,183.397241 L438.919953,239.330843 L424.938006,239.330843 L424.938006,183.397241 L438.919953,183.397241 Z M462.147438,182.284345 C467.241767,182.183306 469.777481,185.032931 472.029027,188.365147 L472.648062,189.29985 L473.405905,190.466955 L481.498949,203.179979 L494.942485,182.617469 L511.589898,182.617469 L492.276839,210.664372 L512,239.319945 L495.38461,239.319945 L481.877011,218.686596 L468.369392,239.319945 L451.741198,239.319945 L471.169596,211.067609 L467.985322,206.488884 L452.86897,184.885401 L453.330031,184.654723 C454.308156,184.178141 456.571426,183.159262 459.242343,182.625286 L460.00843,182.480068 C460.760051,182.352459 461.469322,182.299482 462.147438,182.284345 Z M431.934102,157.971192 C436.746346,157.971192 440.629457,161.76452 440.629457,166.442243 C440.629457,171.100712 436.746346,174.874968 431.934102,174.874968 C427.128251,174.874968 423.24514,171.100712 423.24514,166.442243 C423.24514,161.76452 427.128251,157.971192 431.934102,157.971192 Z" fill="#F58025"></path>
+            </g>
+        </svg>
+        <span class="brand-product">SK하이닉스 · 회로 검증</span>
+      </div>
+      <nav aria-label="화면 탐색">
+        <a href="#overview" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h6l2-7 3 14 2-7h5"/></svg>운영 현황</a>
+        <a href="#waveform"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17V7m4 7V4m4 15V9m4 5V6m4 11V11M2 20h20"/></svg>파형 검증</a>
+        <a href="#records" id="records-link"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zm3 5h8m-8 4h8m-8 4h5"/></svg>이력 · 로그</a>
+      </nav>
+      <div class="rail-footer">
+        <div class="mono">HAIC_Predictor</div>
+        <div>서버 확인 · 10초 주기</div>
+        <div id="health-time">—</div>
+      </div>
+    </aside>
+    <header>
+      <div class="heading">
+        <h1>전압 예측 대시보드</h1>
+        <span class="label">DRAM · 지점 E</span>
+      </div>
+      <div class="system">
+        <dl>
+          <dt>로딩</dt>
+          <dd id="loading">확인 중</dd>
+        </dl>
+        <dl>
+          <dt>서빙 버전</dt>
+          <dd id="model-version" class="mono">미확인</dd>
+        </dl>
+        <span id="connection" class="badge warn" role="status"
+          >○ 연결 확인 중</span
+        >
+      </div>
+    </header>
+    <main id="overview">
+      <div id="connection-alert" class="banner" role="alert" hidden></div>
+      <section class="workbench" aria-label="검증 작업">
+      <section class="action-block" id="data-controls">
+        <h2><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg> 검증 데이터 업로드</h2>
+        <div class="filebox">
+          <label class="file-picker" for="csv-file">＋ CSV 선택</label
+          ><input
+            class="sr-only"
+            id="csv-file"
+            type="file"
+            accept=".csv,text/csv"
+          />
+          <p id="selected-file">선택한 파일 없음</p>
+          <button id="upload-btn" class="primary">업로드</button>
+        </div>
+        <span id="upload-badge" class="badge idle">○ 미등록</span>
+        <p id="upload-message" class="message" role="status"></p>
+        <details>
+          <summary>데이터 정보</summary>
+          <dl class="details">
+            <dt>파일</dt>
+            <dd id="data-name">—</dd>
+            <dt>시간</dt>
+            <dd id="data-time">— ps</dd>
+            <dt>Input_V</dt>
+            <dd id="data-input">— V</dd>
+            <dt>끝단 E</dt>
+            <dd id="data-e">— V</dd>
+          </dl>
+          <p id="data-top" class="sr-only"></p>
+        </details>
+      </section>
+      <section class="action-block" id="simulation">
+        <h2><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h12M4 12h8M4 18h12m1-8 4 2-4 2z"/></svg> 드리프트 시뮬레이션</h2>
+        <div class="stack">
+          <button id="normal-btn">정상 배치 실행</button
+          ><button id="drift-btn" class="danger">드리프트 배치 실행</button>
+        </div>
+        <span id="batch-state" class="badge idle">○ 실행 대기</span>
+        <div id="batch-message" class="message" role="status"></div>
+      </section>
+      </section>
+
+      <section class="overview" aria-label="핵심 운영 지표">
+        <div class="metric status" id="status-metric">
+          <div class="metric-label">모델 상태</div>
+          <span id="trust-badge" class="badge warn">○ WARN · 판정 대기</span>
+          <div id="trust-title">판정 대기</div>
+          <p id="trust-note" class="note">배치 21건 필요</p>
+        </div>
+        <div class="metric">
+          <div class="metric-label">최근 21건 RMSE</div>
+          <div class="metric-value num">
+            <span id="rmse">—</span> <small>mV</small>
+          </div>
+          <div class="gauge" aria-label="RMSE 위치 · 0에서 24mV">
+            <div id="gauge-fill"></div>
+          </div>
+          <div class="gauge-labels">
+            <span>0</span><span>12 mV</span><span>24 mV</span>
+          </div>
+          <p id="rmse-note" class="note">0 / 21건</p>
+        </div>
+        <div class="metric">
+          <div class="metric-label">관리 기준</div>
+          <div class="metric-value num">12 <small>mV</small></div>
+          <p class="note">이하 통과 · 초과 감지</p>
+          <a
+            href="#threshold-help"
+            id="threshold-link"
+            aria-label="12mV 기준 근거 보기"
+            >ⓘ</a
+          >
+          <p class="note">1.2 V × 1%</p>
+        </div>
+        <div class="metric">
+          <div class="metric-label">검증 데이터</div>
+          <div class="metric-value num">
+            <span id="row-count">—</span> <small>행</small>
+          </div>
+          <p id="data-range" class="note">Input_V · E / V</p>
+          <p class="note">입력 450행 / 150점</p>
+        </div>
+      </section>
+      <div class="dashboard-grid">
+        <section class="panel" id="waveform">
+          <div class="panel-head">
+            <h2>입력 파형 · 끝단 E</h2>
+            <span class="tag">450행 윈도우</span>
+          </div>
+          <div class="legend">
+            <span><i class="swatch"></i>Input_V</span
+            ><span><i class="swatch purple"></i>실제 E</span
+            ><span><i class="swatch point"></i>150점</span
+            ><span><i class="swatch pred"></i>예측 E</span>
+          </div>
+          <div
+            class="plot"
+            id="wave-plot"
+            tabindex="0"
+            role="img"
+            aria-label="전압 파형. 마우스 또는 좌우 방향키로 값 확인"
+          >
+            <canvas id="wave"></canvas>
+            <div class="empty-plot" id="wave-empty">
+              CSV를 업로드하세요<br />TIME · Input_V · E
+            </div>
+            <div class="tooltip"></div>
+          </div>
+          <div
+            class="plot overview-plot"
+            id="overview-plot"
+            role="img"
+            aria-label="전체 파형과 선택 구간"
+          >
+            <canvas id="overview-canvas"></canvas>
+            <div class="tooltip"></div>
+          </div>
+          <div class="window-controls">
+            <div class="window-row">
+              <label for="start-row"
+                >시작 행
+                <input
+                  id="start-row"
+                  type="number"
+                  min="1"
+                  value="1"
+                  disabled /></label
+              ><span id="window-label" class="mono muted">— / 450행</span
+              ><button id="predict-btn" class="primary" disabled>
+                구간 예측
+              </button>
+            </div>
+            <label class="sr-only" for="window-slider">윈도우 시작 위치</label
+            ><input
+              id="window-slider"
+              type="range"
+              min="0"
+              max="0"
+              value="0"
+              disabled
+            />
+            <div class="window-hint"><span id="time-range">— ps</span></div>
+            <p id="predict-message" class="message" role="status"></p>
+          </div>
+          <div class="readouts">
+            <div class="readout">
+              <span class="muted">예측 E</span
+              ><strong><span id="predicted-e">—</span> <small>V</small></strong>
+            </div>
+            <div class="readout">
+              <span class="muted">실제 E</span
+              ><strong><span id="actual-e">—</span> <small>V</small></strong>
+            </div>
+            <div class="readout">
+              <span class="muted">차이</span
+              ><strong><span id="error-e">—</span> <small>mV</small></strong>
+            </div>
+          </div>
+        </section>
+        <div class="compare-stack">
+          <section class="panel comparison">
+            <div class="panel-head">
+              <h2>실제 vs 예측</h2>
+              <span class="tag">최근 배치 21건</span>
+            </div>
+            <div class="legend">
+              <span><i class="swatch purple"></i>실제 E</span
+              ><span><i class="swatch"></i>예측 E</span>
+            </div>
+            <div
+              class="plot"
+              id="compare-plot"
+              tabindex="0"
+              role="img"
+              aria-label="배치 21건 실제 및 예측 전압"
+            >
+              <canvas id="compare"></canvas>
+              <div class="empty-plot" id="compare-empty">배치 실행 대기</div>
+              <div class="tooltip"></div>
+            </div>
+          </section>
+          <section class="panel comparison">
+            <div class="panel-head">
+              <h2>건별 절대 오차</h2>
+              <span id="batch-rmse" class="tag">RMSE — mV</span>
+            </div>
+            <div class="legend">
+              <span><i class="swatch"></i>절대 오차</span
+              ><span style="color: var(--fail)">┄ 12 mV / □ 초과</span>
+            </div>
+            <div
+              class="plot"
+              id="error-plot"
+              tabindex="0"
+              role="img"
+              aria-label="절대 오차와 12mV 기준선"
+            >
+              <canvas id="errors"></canvas>
+              <div class="empty-plot" id="error-empty">배치 실행 대기</div>
+              <div class="tooltip"></div>
+            </div>
+            <p class="chart-caption">판정 기준: 건별 오차가 아닌 21건 RMSE</p>
+          </section>
+        </div>
+      </div>
+      <section class="panel pipeline" id="pipeline">
+        <div class="panel-head">
+          <h2>재학습 파이프라인</h2>
+          <span id="pipeline-badge" class="badge idle">○ 실행 대기</span>
+        </div>
+        <div class="pipeline-legend" aria-label="파이프라인 상태 색상">
+          <span><i style="background: #237347"></i>완료</span
+          ><span
+            ><i style="background: #ffe7a0; border: 1px solid #946200"></i>진행
+            중</span
+          ><span><i style="background: #b5323e"></i>실패</span
+          ><span><i style="background: #a9bac3"></i>대기 · 해당 없음</span>
+        </div>
+        <div id="steps" class="steps" tabindex="0" aria-label="재학습 파이프라인 7단계, 좁은 화면에서는 좌우로 이동" aria-live="polite"></div>
+        <details>
+          <summary>처리 상세</summary>
+          <p id="pipeline-note" class="pipeline-note">
+            실제 로그와 최종 응답으로 진행 상태를 확인합니다. Registry 승격은
+            현재 서빙 캐시의 교체를 보장하지 않습니다.
+          </p>
+        </details>
+      </section>
+      <section class="help" id="help">
+        <h2>측정 안내</h2>
+        <details>
+          <summary>입력 · 전처리</summary>
+          <p>CSV: TIME, Input_V, E / 최소 650행.</p>
+          <div class="formula">450행 → 150점 → E</div>
+          <p>
+            3행 간격의 Input_V 150개로 시작 위치 +449행의 E를 예측합니다.
+            스케일링 없음.
+          </p>
+          <p>
+            E는 신호가 가장 약하고 늦게 도착하는 회로 끝단입니다. 단일 예측은
+            드리프트 기록에 포함하지 않습니다.
+          </p>
+        </details>
+        <details id="threshold-help">
+          <summary>12 mV 기준</summary>
+          <div class="formula">1.2 V × 1% = 12 mV</div>
+          <p>
+            DDR4 판정 기준 전압 허용 흔들림을 참고한 프로젝트 운영 기준입니다.
+          </p>
+          <p>
+            배포 게이트 ≤ 12 mV<br />드리프트 &gt; 12 mV<br />21건 미만은 판정
+            대기
+          </p>
+        </details>
+        <details>
+          <summary>배치 · 재학습 데이터</summary>
+          <p>
+            SKHY_test_answer.csv 무작위 구간 21건. 드리프트는 입력·정답 전압을
+            3배 적용합니다.
+          </p>
+          <p>
+            업로드 CSV와 별개이며 재학습은 서버 테스트 데이터의 마지막 470행을
+            사용합니다.
+          </p>
+        </details>
+      </section>
+      <div class="record-grid" id="records">
+        <details class="panel record-panel" id="history-panel">
+          <summary>배치 실행 이력</summary>
+          <div class="panel-head"><h2>현재 화면 세션</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>순번</th>
+                  <th>시각</th>
+                  <th>종류</th>
+                  <th>RMSE</th>
+                  <th>판정</th>
+                  <th>승격 여부</th>
+                </tr>
+              </thead>
+              <tbody id="history">
+                <tr>
+                  <td class="empty" colspan="6">실행 이력 없음</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <details class="panel record-panel" id="operations">
+          <summary>운영 로그 · aiops.log</summary>
+          <div class="panel-head">
+            <h2>서버 로그</h2>
+            <div class="batch-controls">
+              <label class="sr-only" for="log-filter">로그 레벨</label
+              ><select id="log-filter">
+                <option value="ALL">전체 레벨</option>
+                <option value="WARN">WARN</option>
+                <option value="INFO">INFO</option>
+                <option value="OK">OK</option>
+                <option value="ERROR">ERROR</option></select
+              ><button id="refresh-logs">새로고침</button>
+            </div>
+          </div>
+          <div id="logs" class="logs" role="log" aria-label="운영 로그">
+            로그 확인 중
+          </div>
+          <p id="log-message" class="message" role="status"></p>
+        </details>
+      </div>
+      <footer class="foot">
+        <span id="last-run">배치 측정 대기</span
+        ><span>전압 V · 오차 mV · 시간 ps</span>
+      </footer>
+    </main>
+    <script>
+      "use strict";
+      // Local-only UI: no external libraries, requests, fonts, or synthetic measurements.
+      const $ = (id) => document.getElementById(id),
+        C = {
+          input: "#cf2040",
+          actual: "#d86b1b",
+          predicted: "#7655a3",
+          error: "#bd1833",
+          grid: "#ece3dd",
+          text: "#6e6261",
+        },
+        LIMIT = 12;
+      const state = {
+        rows: [],
+        start: 0,
+        pred: null,
+        predictions: null,
+        batch: null,
+        history: [],
+        connected: false,
+        busy: false,
+        uploading: false,
+        predicting: false,
+        logs: "",
+        logBase: "",
+        logBusy: false,
+        activeRun: false,
+        run: 0,
+        stage: [],
+        cursors: {},
+        version: null,
+      };
+      const stageTitles = [
+        "데이터 수집",
+        "예측 기록",
+        "드리프트 감지",
+        "재학습 트리거",
+        "fine-tuning",
+        "게이트 재검증",
+        "Production 승격",
+      ];
+      const stageIcons = [
+        "M4 7 12 3l8 4v10l-8 4-8-4z M4 7l8 4 8-4 M12 11v10",
+        "M4 19V9m5 10V5m5 14v-7m5 7V8M2 21h20",
+        "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5 M7 11h8",
+        "M4 12a8 8 0 0 1 14-5 M18 4v4h-4 M20 12a8 8 0 0 1-14 5 M6 20v-4h4",
+        "M5 7l7-4 7 4v10l-7 4-7-4z M5 7l7 4 7-4 M12 11v10",
+        "M12 3 5 6v6c0 5 3 8 7 9 4-1 7-4 7-9V6z M9 12l2 2 4-4",
+        "M4 15v4h16v-4 M12 16V4m0 0-4 4m4-4 4 4",
+      ];
+      function text(id, value) {
+        $(id).textContent = value;
+      }
+      function fmt(v, n = 3) {
+        return Number.isFinite(v) ? v.toFixed(n) : "—";
+      }
+      function clock() {
+        return new Date().toLocaleTimeString("ko-KR", { hour12: false });
+      }
+      function message(id, value, error = false) {
+        text(id, value);
+        $(id).classList.toggle("error", error);
+      }
+      function badge(id, label, level = "idle") {
+        const el = $(id);
+        el.className = "badge " + level;
+        el.textContent = label;
+      }
+      function buttons() {
+        $("upload-btn").disabled =
+          state.uploading || state.busy || state.predicting;
+        $("csv-file").disabled =
+          state.uploading || state.busy || state.predicting;
+        for (const id of ["normal-btn", "drift-btn"])
+          $(id).disabled =
+            state.busy ||
+            state.uploading ||
+            state.predicting ||
+            !state.connected;
+        $("predict-btn").disabled =
+          !state.rows.length ||
+          state.start < 449 ||
+          state.busy ||
+          state.uploading ||
+          state.predicting ||
+          !state.connected;
+        for (const id of ["start-row", "window-slider"])
+          $(id).disabled =
+            !state.rows.length ||
+            state.predicting ||
+            state.uploading ||
+            state.busy;
+      }
+      async function api(path, options = {}, timeout = 15000) {
+        const ctl = new AbortController(),
+          timer = setTimeout(() => ctl.abort(), timeout);
+        try {
+          const r = await fetch(path, {
+            ...options,
+            signal: ctl.signal,
+            cache: "no-store",
+          });
+          const raw = await r.text();
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            data = null;
+          }
+          if (!r.ok) {
+            let detail = typeof data?.detail === "string" ? data.detail : null;
+            throw new Error(
+              detail ||
+                (r.status === 422
+                  ? "입력 형식이 올바르지 않습니다. 연속 450개의 전압값이 필요합니다."
+                  : r.status === 500
+                    ? "서버 처리에 실패했습니다. 모델 파일과 MLflow 연결 상태를 확인하세요."
+                    : `요청을 처리하지 못했습니다. (HTTP ${r.status})`),
+            );
+          }
+          if (data === null)
+            throw new Error(
+              "서버 응답을 읽을 수 없습니다. 서버 주소와 실행 상태를 확인하세요.",
+            );
+          return data;
+        } catch (e) {
+          if (e.name === "AbortError")
+            throw new Error(
+              "응답 대기 시간이 지났습니다. 서버에서 작업이 계속 진행될 수 있으니 로그를 확인하세요.",
+            );
+          if (e instanceof TypeError)
+            throw new Error(
+              "서버에 연결할 수 없습니다. 서버 실행 상태를 확인하세요.",
+            );
+          throw e;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      async function health() {
+        try {
+          const h = await api("/health", {}, 7000);
+          state.connected = h.status === "ok";
+          if (!state.connected) throw new Error("서버가 정상 상태가 아닙니다.");
+          badge("connection", "● 서버 연결", "pass");
+          text(
+            "loading",
+            `${h.loading_mode === "lazy" ? "지연 로딩" : h.loading_mode === "eager" ? "시작 시 로딩" : h.loading_mode} · ${h.model_loaded ? "준비됨" : "대기"}`,
+          );
+          text("health-time", clock());
+          $("connection-alert").hidden = true;
+        } catch (e) {
+          state.connected = false;
+          badge("connection", "× 연결 끊김", "fail");
+          text("loading", "서버 확인 불가");
+          $("connection-alert").hidden = false;
+          text(
+            "connection-alert",
+            location.protocol === "file:"
+              ? "HTML 파일만 열린 상태입니다. 이 파일을 serving_app/static/index.html로 저장하고 프로젝트 폴더에서 uvicorn serving_app.main:app --port 8077을 실행한 뒤 http://localhost:8077로 접속하세요. 그래프는 CSV 업로드와 배치 실행 후 표시됩니다."
+              : "서버에 연결할 수 없습니다. 미리보기에서 열었다면 프로젝트 서버를 실행한 뒤 http://localhost:8077로 접속하세요. 기존 측정값은 마지막 결과이며 최신 상태가 아닙니다.",
+          );
+        }
+        buttons();
+      }
+      function dataSummary(d) {
+        if (!d.exists) {
+          text("data-top", "업로드된 CSV가 없습니다.");
+          return;
+        }
+        text("row-count", d.rows.toLocaleString("ko-KR"));
+        text("data-top", `${d.filename}`);
+        text(
+          "data-range",
+          `Input_V ${fmt(d.min_input_v)}–${fmt(d.max_input_v)} V`,
+        );
+        text("data-name", d.filename);
+        text(
+          "data-time",
+          `${fmt(d.start_time * 1e12, 1)}–${fmt(d.end_time * 1e12, 1)} ps`,
+        );
+        text("data-input", `${fmt(d.min_input_v)}–${fmt(d.max_input_v)} V`);
+        text("data-e", `${fmt(d.min_e)}–${fmt(d.max_e)} V`);
+        badge("upload-badge", "✓ 등록됨", "pass");
+        if (!state.rows.length)
+          message(
+            "upload-message",
+            "서버에 데이터가 있습니다. 파형을 보려면 해당 CSV를 다시 선택해 업로드하세요.",
+          );
+      }
+      async function loadData() {
+        try {
+          dataSummary(await api("/data/status"));
+        } catch (e) {
+          message(
+            "upload-message",
+            "데이터 상태 조회 실패: " + e.message,
+            true,
+          );
+        }
+      }
+      // RFC-style quoted fields, CRLF, optional UTF-8 BOM; rejects missing, nonfinite and malformed values.
+      function parseCSV(raw) {
+        const s = raw.replace(/^\uFEFF/, "");
+        let records = [],
+          row = [],
+          field = "",
+          quoted = false,
+          closed = false;
+        for (let i = 0; i < s.length; i++) {
+          const c = s[i];
+          if (quoted) {
+            if (c === '"') {
+              if (s[i + 1] === '"') {
+                field += '"';
+                i++;
+              } else {
+                quoted = false;
+                closed = true;
+              }
+            } else field += c;
+          } else if (c === '"') {
+            if (field !== "" || closed)
+              throw new Error("CSV 따옴표 형식이 올바르지 않습니다.");
+            quoted = true;
+          } else if (c === "," || c === "\n" || c === "\r") {
+            row.push(field);
+            field = "";
+            closed = false;
+            if (c !== ",") {
+              if (row.some((v) => v.trim() !== "")) records.push(row);
+              row = [];
+              if (c === "\r" && s[i + 1] === "\n") i++;
+            }
+          } else {
+            if (closed)
+              throw new Error(
+                "닫는 따옴표 뒤에 올바르지 않은 문자가 있습니다.",
+              );
+            field += c;
+          }
+        }
+        if (quoted) throw new Error("CSV에 닫히지 않은 따옴표가 있습니다.");
+        if (field !== "" || row.length) {
+          row.push(field);
+          if (row.some((v) => v.trim() !== "")) records.push(row);
+        }
+        if (!records.length) throw new Error("CSV가 비어 있습니다.");
+        const header = records.shift();
+        const columns = ["TIME", "Input_V", "E"];
+        if (new Set(header).size !== header.length)
+          throw new Error("CSV에 중복된 컬럼명이 있습니다.");
+        const ix = columns.map((c) => header.indexOf(c));
+        if (ix.some((i) => i < 0))
+          throw new Error(
+            "필수 컬럼 TIME, Input_V, E를 정확히 포함해야 합니다.",
+          );
+        if (records.length < 650)
+          throw new Error(
+            `최소 650행이 필요합니다. 현재 ${records.length}행입니다.`,
+          );
+        const decimal = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+        return records.map((r, i) => {
+          if (r.length !== header.length)
+            throw new Error(`${i + 2}행의 컬럼 수가 올바르지 않습니다.`);
+          const values = ix.map((k, j) => {
+            const v = r[k].trim(),
+              n = Number(v);
+            if (!decimal.test(v) || !Number.isFinite(n))
+              throw new Error(
+                `${i + 2}행 ${columns[j]} 값은 유한한 숫자여야 합니다.`,
+              );
+            return n;
+          });
+          return { t: values[0], v: values[1], e: values[2] };
+        });
+      }
+      async function upload() {
+        const file = $("csv-file").files[0];
+        if (!file) {
+          message("upload-message", "먼저 CSV 파일을 선택하세요.", true);
+          return;
+        }
+        if (!/\.csv$/i.test(file.name)) {
+          message("upload-message", "확장자가 .csv인 파일을 선택하세요.", true);
+          return;
+        }
+        state.uploading = true;
+        buttons();
+        message("upload-message", "파일 형식을 검사하고 있습니다.");
+        try {
+          const raw = new TextDecoder("utf-8", { fatal: true }).decode(
+            await file.arrayBuffer(),
+          );
+          const rows = parseCSV(raw);
+          message(
+            "upload-message",
+            `${rows.length.toLocaleString()}행 검사 완료 · 서버에 업로드 중입니다.`,
+          );
+          const form = new FormData();
+          form.append(
+            "file",
+            new Blob([raw.replace(/^\uFEFF/, "")], { type: "text/csv" }),
+            file.name,
+          );
+          const result = await api(
+            "/data/upload",
+            { method: "POST", body: form },
+            60000,
+          );
+          state.rows = rows;
+          state.start = 0;
+          state.pred = null;
+          state.predictions = null;
+          state.cursors = {};
+          $("window-slider").max = rows.length - 450;
+          $("start-row").max = rows.length - 449;
+          setWindow(0);
+          await loadData();
+          message(
+            "upload-message",
+            `${result.rows.toLocaleString()}행 업로드 완료`,
+          );
+        } catch (e) {
+          message(
+            "upload-message",
+            e instanceof TypeError
+              ? "UTF-8 CSV 파일인지 확인하세요."
+              : e.message,
+            true,
+          );
+        } finally {
+          state.uploading = false;
+          buttons();
+        }
+      }
+      function setWindow(start) {
+        state.start = Math.max(
+          0,
+          Math.min(state.rows.length - 450, Math.round(Number(start) || 0)),
+        );
+        state.pred = null;
+        state.predictions = null;
+        state.cursors.wave = null;
+        $("window-slider").value = state.start;
+        $("start-row").value = state.start + 1;
+        text(
+          "window-label",
+          `${(state.start + 1).toLocaleString()}–${(state.start + 450).toLocaleString()}행 / 450행`,
+        );
+        const first = state.rows[state.start],
+          last = state.rows[state.start + 449];
+        text(
+          "time-range",
+          `${fmt(first.t * 1e12, 2)}–${fmt(last.t * 1e12, 2)} ps`,
+        );
+        text("predicted-e", "—");
+        text("actual-e", fmt(last.e, 6));
+        text("error-e", "—");
+        message(
+          "predict-message",
+          state.start < 449
+            ? "450행부터 구간 예측할 수 있습니다. 이전 449행의 입력 이력이 필요합니다."
+            : "",
+        );
+        $("wave-empty").hidden = true;
+        $("wave-empty").style.display = "none";
+        drawAll();
+        buttons();
+      }
+      async function predict() {
+        if (!state.rows.length || state.start < 449 || state.predicting) return;
+        state.predicting = true;
+        buttons();
+        message("predict-message", "선택 구간의 전압을 예측하고 있습니다.");
+        const start = state.start;
+        state.pred = null;
+        state.predictions = null;
+        text("predicted-e", "—");
+        text("error-e", "—");
+        drawWave();
+        try {
+          const r = await api(
+            "/predict/range",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sequence: state.rows
+                  .slice(start - 449, start + 450)
+                  .map((r) => r.v),
+              }),
+            },
+            120000,
+          );
+          if (
+            !Array.isArray(r.predictions) ||
+            r.predictions.length !== 450 ||
+            !r.predictions.every(Number.isFinite)
+          )
+            throw new Error("예측 응답에 450개의 유효한 전압값이 없습니다.");
+          state.predictions = r.predictions;
+          state.pred = r.predictions.at(-1);
+          state.version = r.model_version;
+          text("model-version", r.model_version);
+          text("predicted-e", fmt(state.pred, 6));
+          const diff = (state.pred - state.rows[start + 449].e) * 1000;
+          text("error-e", (diff > 0 ? "+" : "") + fmt(diff));
+          message(
+            "predict-message",
+            `450행 구간 예측 완료 · ${r.model_version}`,
+          );
+          drawWave();
+          await health();
+        } catch (e) {
+          message("predict-message", e.message, true);
+        } finally {
+          state.predicting = false;
+          buttons();
+        }
+      }
+      function trust(level, title, note) {
+        badge(
+          "trust-badge",
+          `${level === "pass" ? "✓ PASS" : level === "fail" ? "× FAIL" : "○ WARN"}`,
+          level,
+        );
+        text("trust-title", title);
+        text(
+          "trust-note",
+          title === "승격 완료"
+            ? "현재 서빙 모델 재검증 필요"
+            : title === "정상"
+              ? "기준 이내 · 운영 가능"
+              : title === "승격 실패"
+                ? "기존 Production 유지"
+                : title === "감지"
+                  ? "12 mV 기준 초과"
+                  : title === "재학습 중"
+                    ? "로그 확인 · 응답 대기"
+                    : note,
+        );
+        $("status-metric").className = `metric status ${level}`;
+      }
+      function renderMetric(r) {
+        const score = r.window_rmse === null ? null : r.window_rmse * 1000;
+        text("rmse", fmt(score));
+        text("batch-rmse", `RMSE ${fmt(score)} mV`);
+        $("gauge-fill").style.width =
+          score === null ? "0" : Math.min((score / 24) * 100, 100) + "%";
+        $("gauge-fill").style.background =
+          score > 12 ? "var(--fail)" : "var(--accent)";
+        text(
+          "rmse-note",
+          score === null
+            ? "21건 미만 · 판정 대기"
+            : `${r.predictions.length} / 21건 · 기준의 ${fmt((score / 12) * 100, 1)}%${score > 24 ? " · 표시 범위 초과" : ""}`,
+        );
+        text("last-run", `${clock()} 측정 · 최근 21건`);
+      }
+      function resetStages() {
+        state.stage = stageTitles.map(() => ({ mode: "", label: "대기" }));
+        renderStages();
+      }
+      function stage(i, mode, label) {
+        state.stage[i] = { mode, label };
+        renderStages();
+      }
+      function renderStages() {
+        const el = $("steps");
+        el.replaceChildren();
+        state.stage.forEach((s, i) => {
+          const div = document.createElement("div");
+          div.className = "step " + s.mode;
+          const next = state.stage[i + 1];
+          if (s.mode === "done" && next?.mode === "done")
+            div.classList.add("linked-done");
+          else if (s.mode === "done" && next?.mode === "active")
+            div.classList.add("linked-active");
+          const symbol = document.createElement("span");
+          symbol.className = "step-symbol";
+          const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          icon.setAttribute("viewBox", "0 0 24 24");
+          icon.setAttribute("aria-hidden", "true");
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", stageIcons[i]);
+          icon.append(path);
+          symbol.append(icon);
+          const n = document.createElement("span");
+          n.className = "step-num";
+          n.textContent =
+            String(i + 1).padStart(2, "0") +
+            " / " +
+            (s.mode === "done"
+              ? "✓ 완료"
+              : s.mode === "failed"
+                ? "× 실패"
+                : s.mode === "active"
+                  ? "○ 진행"
+                  : s.label === "해당 없음"
+                    ? "— 제외"
+                    : "— 대기");
+          const b = document.createElement("b");
+          b.textContent = stageTitles[i];
+          const d = document.createElement("small");
+          d.textContent = s.label;
+          div.append(symbol, b, d, n);
+          el.append(div);
+        });
+      }
+      function liveStages(fresh) {
+        if (!state.activeRun) return;
+        if (fresh.includes("[WARN] drift detected")) {
+          stage(0, "done", "수집 확인");
+          stage(1, "done", "21건 기록");
+          stage(2, "done", "기준 초과 감지");
+          trust("fail", "감지", "최근 21건 오차가 기준을 초과했습니다.");
+          badge("pipeline-badge", "○ 드리프트 감지", "warn");
+        }
+        if (fresh.includes("[INFO] retrain triggered")) {
+          stage(3, "done", "트리거 확인");
+          stage(4, "active", "학습·평가 응답 대기");
+          trust(
+            "warn",
+            "재학습 중",
+            "트리거 로그 확인 · 세부 학습 단계는 응답 대기",
+          );
+          badge("pipeline-badge", "○ 재학습 중", "warn");
+        }
+      }
+      const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      async function finishStages(r) {
+        const d = r.drift_check;
+        stage(0, "done", "수집 확인");
+        await pause(100);
+        stage(1, "done", `${r.predictions.length}건 기록`);
+        await pause(100);
+        if (r.window_rmse === null) {
+          stage(2, "active", "21건 미만 · 미판정");
+          return;
+        }
+        stage(
+          2,
+          "done",
+          d.status === "ok" ? "정상 · 기준 이내" : "기준 초과 감지",
+        );
+        if (d.status === "ok") {
+          for (let i = 3; i < 7; i++) stage(i, "", "해당 없음");
+          trust("pass", "정상", "최근 21건 RMSE가 12 mV 이내입니다.");
+          badge("pipeline-badge", "✓ 정상 · 재학습 불필요", "pass");
+          return;
+        }
+        trust(
+          "fail",
+          "감지",
+          "배치 RMSE 기준 초과 · 재학습 결과를 확인합니다.",
+        );
+        await pause(120);
+        stage(3, "done", "실행 확인");
+        trust(
+          "warn",
+          "재학습 중",
+          "최종 응답으로 확인된 완료 단계를 순서대로 표시합니다.",
+        );
+        await pause(120);
+        stage(4, "done", "완료 · 응답 확인");
+        await pause(120);
+        stage(
+          5,
+          d.promoted ? "done" : "failed",
+          `${fmt(d.rmse * 1000)} mV · ${d.promoted ? "통과" : "미통과"}`,
+        );
+        await pause(120);
+        stage(
+          6,
+          d.promoted ? "done" : "failed",
+          d.promoted ? "승격 완료" : "기존 유지",
+        );
+        trust(
+          d.promoted ? "warn" : "fail",
+          d.promoted ? "승격 완료" : "승격 실패",
+          d.promoted
+            ? "Registry 승격 완료 · 현재 서빙 모델은 재검증이 필요합니다. 위 RMSE는 승격 전 측정값입니다."
+            : "게이트를 통과하지 못했습니다. 기존 Production을 유지합니다.",
+        );
+        badge(
+          "pipeline-badge",
+          d.promoted ? "✓ 승격 완료" : "× 승격 실패 · 기존 유지",
+          d.promoted ? "pass" : "fail",
+        );
+        text(
+          "pipeline-note",
+          `게이트 평가 ${fmt(d.rmse * 1000)} mV / 기준 12 mV. Registry 승격은 서빙 캐시 교체를 보장하지 않습니다. 현재 서빙 버전은 /predict 응답으로만 확인합니다.`,
+        );
+      }
+      async function batch(kind) {
+        if (state.busy) return;
+        state.busy = true;
+        buttons();
+        state.run++;
+        resetStages();
+        badge("batch-state", "○ 배치 실행 중", "warn");
+        badge("pipeline-badge", "○ 예측 응답 대기", "warn");
+        trust(
+          "warn",
+          "판정 진행 중",
+          "새 배치 응답을 기다립니다. RMSE는 직전 측정값입니다.",
+        );
+        message("batch-message", "21건 예측 중…");
+        text(
+          "pipeline-note",
+          "로그에서 확인된 단계만 진행 상태로 표시합니다. 최종 응답 수신 후 완료 단계를 순서대로 확인합니다.",
+        );
+        let poll;
+        const entry = {
+          n: state.run,
+          time: clock(),
+          kind: kind === "normal" ? "정상" : "드리프트",
+          rmse: null,
+          result: "실행 중",
+          promotion: "—",
+        };
+        state.history.unshift(entry);
+        renderHistory();
+        try {
+          await refreshLogs();
+          state.logBase = state.logs;
+          state.activeRun = true;
+          stage(0, "active", "수집·예측 요청 중");
+          poll = setInterval(() => refreshLogs(), 1200);
+          const r = await api(
+            "/predict/batch-test",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ kind }),
+            },
+            900000,
+          );
+          state.activeRun = false;
+          clearInterval(poll);
+          if (
+            !Array.isArray(r.actuals) ||
+            r.actuals.length !== r.predictions?.length ||
+            r.predictions.length !== 21 ||
+            ![...r.actuals, ...r.predictions].every(Number.isFinite) ||
+            !(r.window_rmse === null || Number.isFinite(r.window_rmse))
+          )
+            throw new Error(
+              "배치 응답 형식이 맞지 않습니다. actuals와 window_rmse가 추가된 백엔드를 실행하세요.",
+            );
+          if (!["ok", "retrain_triggered"].includes(r.drift_check?.status))
+            throw new Error("서버의 드리프트 판정 결과를 확인할 수 없습니다.");
+          state.batch = r;
+          state.cursors.compare = null;
+          state.cursors.errors = null;
+          renderMetric(r);
+          drawAll();
+          await finishStages(r);
+          entry.rmse = r.window_rmse === null ? null : r.window_rmse * 1000;
+          entry.result =
+            r.window_rmse === null
+              ? "판정 대기"
+              : r.drift_check.status === "ok"
+                ? "정상"
+                : "감지";
+          entry.promotion =
+            r.drift_check.status === "ok"
+              ? "해당 없음"
+              : r.drift_check.promoted
+                ? "승격 완료"
+                : "기존 유지";
+          badge("batch-state", "✓ 실행 완료", "pass");
+          message("batch-message", "21건 비교 완료");
+        } catch (e) {
+          state.activeRun = false;
+          entry.result = "실행 실패";
+          badge("batch-state", "× 실행 실패", "fail");
+          badge("pipeline-badge", "× 결과 확인 불가", "fail");
+          trust(
+            "warn",
+            "판정 불가",
+            "요청 실패로 최신 결과를 확인하지 못했습니다.",
+          );
+          state.stage.forEach((s, i) => {
+            if (s.mode === "active") stage(i, "failed", "처리 결과 확인 불가");
+          });
+          message("batch-message", e.message, true);
+        } finally {
+          clearInterval(poll);
+          state.activeRun = false;
+          renderHistory();
+          await refreshLogs();
+          await health();
+          state.busy = false;
+          buttons();
+        }
+      }
+      function renderHistory() {
+        const body = $("history");
+        body.replaceChildren();
+        for (const r of state.history) {
+          const tr = document.createElement("tr");
+          for (const value of [
+            r.n,
+            r.time,
+            r.kind,
+            r.rmse === null ? "— mV" : fmt(r.rmse) + " mV",
+            r.result,
+            r.promotion,
+          ]) {
+            const td = document.createElement("td");
+            td.textContent = value;
+            tr.append(td);
+          }
+          body.append(tr);
+        }
+      }
+      function logLevel(s) {
+        return /\[OK\]/.test(s)
+          ? "OK"
+          : /\[(WARN|WARNING)\]/.test(s)
+            ? "WARN"
+            : /\[(ERROR|CRITICAL)\]/.test(s)
+              ? "ERROR"
+              : "INFO";
+      }
+      function renderLogs() {
+        const el = $("logs"),
+          filter = $("log-filter").value;
+        el.replaceChildren();
+        const lines = state.logs
+          .split("\n")
+          .filter(Boolean)
+          .filter((l) => filter === "ALL" || logLevel(l) === filter)
+          .slice(-300);
+        if (!lines.length) {
+          el.textContent = "표시할 로그가 없습니다.";
+          return;
+        }
+        for (const line of lines) {
+          const div = document.createElement("div"),
+            level = logLevel(line);
+          div.className = "logline " + level;
+          const b = document.createElement("span");
+          b.className = "loglevel";
+          b.textContent = level;
+          const content = document.createElement("span");
+          content.textContent = line;
+          div.append(b, content);
+          el.append(div);
+        }
+        el.scrollTop = el.scrollHeight;
+      }
+      async function refreshLogs() {
+        if (state.logBusy) return;
+        state.logBusy = true;
+        try {
+          const files = await api("/logs");
+          if (!files.some((f) => f.name === "aiops.log")) {
+            state.logs = "";
+            renderLogs();
+            message("log-message", "aiops.log가 아직 생성되지 않았습니다.");
+            return;
+          }
+          const r = await api("/logs/aiops.log");
+          state.logs = r.content;
+          renderLogs();
+          const fresh = state.logs.startsWith(state.logBase)
+            ? state.logs.slice(state.logBase.length)
+            : state.logs;
+          liveStages(fresh);
+          message(
+            "log-message",
+            `${clock()} 갱신 · 최근 300줄 표시 · 배치 실행 중 자동 갱신`,
+          );
+        } catch (e) {
+          message("log-message", "로그 조회 실패: " + e.message, true);
+        } finally {
+          state.logBusy = false;
+        }
+      }
+      // Canvas chart primitives. Coordinates use device pixels only for rasterization.
+      const charts = {};
+      function chart(
+        id,
+        values,
+        {
+          unit = "V",
+          mini = false,
+          min = null,
+          max = null,
+          xmin = 0,
+          xmax = 1,
+          xunit = "건",
+        } = {},
+      ) {
+        const c = $(id),
+          w = c.clientWidth,
+          h = c.clientHeight,
+          dpr = window.devicePixelRatio || 1;
+        c.width = Math.round(w * dpr);
+        c.height = Math.round(h * dpr);
+        const ctx = c.getContext("2d");
+        ctx.scale(dpr, dpr);
+        let lo = min ?? Infinity,
+          hi = max ?? -Infinity;
+        if (min === null || max === null)
+          for (const v of values) {
+            if (min === null) lo = Math.min(lo, v);
+            if (max === null) hi = Math.max(hi, v);
+          }
+        if (!Number.isFinite(lo)) {
+          lo = 0;
+          hi = 1.4;
+        }
+        if (hi === lo) {
+          lo -= 0.01;
+          hi += 0.01;
+        }
+        const pad = (hi - lo) * 0.12;
+        if (min === null) lo -= pad;
+        if (max === null) hi += pad;
+        const p = mini
+          ? { l: 55, r: 24, t: 7, b: 21 }
+          : { l: 65, r: 30, t: 26, b: 42 };
+        const pw = Math.max(1, w - p.l - p.r),
+          ph = Math.max(1, h - p.t - p.b);
+        const x = (v) => p.l + ((v - xmin) / (xmax - xmin || 1)) * pw,
+          y = (v) => h - p.b - ((v - lo) / (hi - lo)) * ph;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.font = "12px Consolas, monospace";
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = C.grid;
+        ctx.fillStyle = C.text;
+        if (!mini) {
+          for (let i = 0; i <= 4; i++) {
+            const v = lo + ((hi - lo) * i) / 4,
+              yy = y(v);
+            ctx.beginPath();
+            ctx.moveTo(p.l, yy);
+            ctx.lineTo(w - p.r, yy);
+            ctx.stroke();
+            ctx.textAlign = "right";
+            ctx.fillText(
+              fmt(
+                v,
+                unit === "mV"
+                  ? 1
+                  : Math.min(
+                      5,
+                      Math.max(3, Math.ceil(-Math.log10((hi - lo) / 4)) + 1),
+                    ),
+              ),
+              p.l - 9,
+              yy + 4,
+            );
+          }
+          ctx.textAlign = "left";
+          ctx.fillText(unit, p.l, 15);
+        }
+        for (let i = 0; i <= 5; i++) {
+          const v = xmin + ((xmax - xmin) * i) / 5,
+            xx = x(v);
+          ctx.beginPath();
+          ctx.moveTo(xx, p.t);
+          ctx.lineTo(xx, h - p.b);
+          ctx.stroke();
+          ctx.textAlign = "center";
+          ctx.fillText(
+            fmt(v, xunit === "건" || xunit === "행" ? 0 : 1),
+            xx,
+            h - p.b + 18,
+          );
+        }
+        ctx.textAlign = "right";
+        if (!mini) ctx.fillText(xunit, w - p.r, h - 3);
+        const ch = { ctx, w, h, p, pw, ph, x, y, xmin, xmax, lo, hi };
+        charts[id] = ch;
+        return ch;
+      }
+      function line(ch, points, color, width = 2) {
+        const { ctx } = ch;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(ch.p.l, ch.p.t, ch.pw, ch.ph);
+        ctx.clip();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        points.forEach((p, i) =>
+          i
+            ? ctx.lineTo(ch.x(p[0]), ch.y(p[1]))
+            : ctx.moveTo(ch.x(p[0]), ch.y(p[1])),
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+      function dot(ch, x, y, color, size = 2, square = false) {
+        const ctx = ch.ctx;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        if (square)
+          ctx.rect(ch.x(x) - size, ch.y(y) - size, size * 2, size * 2);
+        else ctx.arc(ch.x(x), ch.y(y), size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      function cursor(ch, x) {
+        const ctx = ch.ctx;
+        ctx.strokeStyle = "#71858e";
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(ch.x(x), ch.p.t);
+        ctx.lineTo(ch.x(x), ch.h - ch.p.b);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      function drawWave() {
+        const rows = state.rows.slice(state.start, state.start + 450),
+          vals = rows.flatMap((r) => [r.v, r.e]);
+        if (state.predictions) vals.push(...state.predictions);
+        const first = rows[0]?.t * 1e12 || 0,
+          last = rows.at(-1)?.t * 1e12 || 1;
+        const ch = chart("wave", vals, {
+          xmin: first,
+          xmax: last,
+          xunit: "ps",
+        });
+        if (!rows.length) return;
+        line(
+          ch,
+          rows.map((r) => [r.t * 1e12, r.v]),
+          C.input,
+        );
+        line(
+          ch,
+          rows.map((r) => [r.t * 1e12, r.e]),
+          C.actual,
+        );
+        if (state.predictions)
+          line(
+            ch,
+            rows.map((r, i) => [r.t * 1e12, state.predictions[i]]),
+            C.predicted,
+            2.2,
+          );
+        rows.forEach((r, i) => {
+          if (i % 3 === 0) dot(ch, r.t * 1e12, r.v, C.input, 2.2);
+        });
+        const end = rows.at(-1);
+        dot(ch, end.t * 1e12, end.e, C.actual, 4);
+        if (state.pred !== null) {
+          const ctx = ch.ctx,
+            x = ch.x(end.t * 1e12),
+            y = ch.y(state.pred);
+          ctx.strokeStyle = C.error;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, ch.y(end.e));
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          ctx.fillStyle = C.error;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 6);
+          ctx.lineTo(x + 6, y);
+          ctx.lineTo(x, y + 6);
+          ctx.lineTo(x - 6, y);
+          ctx.closePath();
+          ctx.fill();
+        }
+        if (state.cursors.wave != null)
+          cursor(ch, rows[state.cursors.wave].t * 1e12);
+      }
+      function drawOverview() {
+        const r = state.rows;
+        let sample = [];
+        if (r.length) {
+          const stride = Math.max(1, Math.floor(r.length / 700));
+          for (let i = 0; i < r.length; i += stride) {
+            let low = i,
+              high = i;
+            for (let j = i; j < Math.min(i + stride, r.length); j++) {
+              if (r[j].v < r[low].v) low = j;
+              if (r[j].v > r[high].v) high = j;
+            }
+            for (const k of [low, high].sort((a, b) => a - b))
+              sample.push([k, r[k].v]);
+          }
+        }
+        const ch = chart(
+          "overview-canvas",
+          sample.map((s) => s[1]),
+          { mini: true, xmin: 1, xmax: r.length || 450, xunit: "행" },
+        );
+        if (!r.length) return;
+        line(
+          ch,
+          sample.map((s) => [s[0] + 1, s[1]]),
+          "#8da9b0",
+          1,
+        );
+        const a = ch.x(state.start + 1),
+          b = ch.x(state.start + 450);
+        ch.ctx.fillStyle = "#cc173719";
+        ch.ctx.fillRect(a, ch.p.t, Math.max(2, b - a), ch.ph);
+        ch.ctx.strokeStyle = C.input;
+        ch.ctx.strokeRect(a, ch.p.t, Math.max(2, b - a), ch.ph);
+      }
+      function drawBatch() {
+        const r = state.batch,
+          vals = r ? [...r.actuals, ...r.predictions] : [];
+        const ch = chart("compare", vals, { xmin: 1, xmax: 21 });
+        const errors = r
+          ? r.actuals.map((v, i) => Math.abs(r.predictions[i] - v) * 1000)
+          : [];
+        const e = chart("errors", errors, {
+          min: 0,
+          max: Math.max(18, ...errors) * 1.15,
+          unit: "mV",
+          xmin: 1,
+          xmax: 21,
+        });
+        e.ctx.strokeStyle = C.error;
+        e.ctx.setLineDash([5, 4]);
+        e.ctx.beginPath();
+        e.ctx.moveTo(e.p.l, e.y(12));
+        e.ctx.lineTo(e.w - e.p.r, e.y(12));
+        e.ctx.stroke();
+        e.ctx.setLineDash([]);
+        e.ctx.fillStyle = C.error;
+        e.ctx.textAlign = "right";
+        e.ctx.fillText("12 mV", e.w - e.p.r, e.y(12) - 6);
+        if (!r) return;
+        $("compare-empty").style.display = "none";
+        $("error-empty").style.display = "none";
+        line(
+          ch,
+          r.actuals.map((v, i) => [i + 1, v]),
+          C.actual,
+        );
+        line(
+          ch,
+          r.predictions.map((v, i) => [i + 1, v]),
+          C.input,
+        );
+        r.actuals.forEach((v, i) => dot(ch, i + 1, v, C.actual, 2.5));
+        r.predictions.forEach((v, i) => dot(ch, i + 1, v, C.input, 2.5));
+        line(
+          e,
+          errors.map((v, i) => [i + 1, v]),
+          C.input,
+        );
+        errors.forEach((v, i) =>
+          dot(e, i + 1, v, v > LIMIT ? C.error : C.input, 3.5, v > LIMIT),
+        );
+        if (state.cursors.compare != null)
+          cursor(ch, state.cursors.compare + 1);
+        if (state.cursors.errors != null) cursor(e, state.cursors.errors + 1);
+      }
+      function drawAll() {
+        drawWave();
+        drawOverview();
+        drawBatch();
+      }
+      function bindTooltip(id, container, key) {
+        const box = $(container),
+          tip = box.querySelector(".tooltip");
+        function show(index, clientX = null, clientY = null) {
+          const r = state.rows.slice(state.start, state.start + 450),
+            batch = state.batch;
+          if ((key === "wave" && !r.length) || (key !== "wave" && !batch))
+            return;
+          const n = key === "wave" ? 450 : 21;
+          index = Math.max(0, Math.min(n - 1, index));
+          state.cursors[key] = index;
+          if (key === "wave") {
+            const p = r[index],
+              predicted = state.predictions?.[index],
+              error = Number.isFinite(predicted)
+                ? (predicted - p.e) * 1000
+                : null;
+            tip.textContent =
+              `第 ${state.start + index + 1}행 · ${fmt(p.t * 1e12, 2)} ps\nInput_V ${fmt(p.v, 6)} V\n실제 E ${fmt(p.e, 6)} V${Number.isFinite(predicted) ? "\n예측 E " + fmt(predicted, 6) + " V\n차이 " + (error > 0 ? "+" : "") + fmt(error) + " mV" : "\n예측 전"}`.replace(
+                "第 ",
+                "",
+              );
+            drawWave();
+          } else {
+            tip.textContent = `${index + 1} / 21건\n실제 E ${fmt(batch.actuals[index], 6)} V\n예측 E ${fmt(batch.predictions[index], 6)} V\n절대 오차 ${fmt(Math.abs(batch.predictions[index] - batch.actuals[index]) * 1000)} mV`;
+            drawBatch();
+          }
+          tip.style.display = "block";
+          tip.style.left =
+            Math.max(
+              0,
+              Math.min(
+                (clientX ?? 90) + 14,
+                box.clientWidth - tip.offsetWidth - 4,
+              ),
+            ) + "px";
+          tip.style.top =
+            Math.max(
+              0,
+              Math.min(
+                (clientY ?? 30) + 12,
+                box.clientHeight - tip.offsetHeight - 3,
+              ),
+            ) + "px";
+        }
+        box.addEventListener("pointermove", (ev) => {
+          const ch = charts[id],
+            rect = box.getBoundingClientRect();
+          if (!ch) return;
+          const local = ev.clientX - rect.left;
+          let index = Math.round(((local - ch.p.l) / ch.pw) * 20);
+          if (key === "wave" && state.rows.length) {
+            const target =
+                ch.xmin + ((local - ch.p.l) / ch.pw) * (ch.xmax - ch.xmin),
+              rows = state.rows.slice(state.start, state.start + 450);
+            index = rows.reduce(
+              (best, r, i) =>
+                Math.abs(r.t * 1e12 - target) <
+                Math.abs(rows[best].t * 1e12 - target)
+                  ? i
+                  : best,
+              0,
+            );
+          }
+          show(index, local, ev.clientY - rect.top);
+        });
+        box.addEventListener("pointerleave", () => {
+          tip.style.display = "none";
+          state.cursors[key] = null;
+          key === "wave" ? drawWave() : drawBatch();
+        });
+        box.addEventListener("keydown", (ev) => {
+          if (!["ArrowLeft", "ArrowRight"].includes(ev.key)) return;
+          ev.preventDefault();
+          show((state.cursors[key] ?? 0) + (ev.key === "ArrowRight" ? 1 : -1));
+        });
+        box.addEventListener("blur", () => {
+          tip.style.display = "none";
+        });
+      }
+      $("csv-file").addEventListener("change", () =>
+        text(
+          "selected-file",
+          $("csv-file").files[0]?.name || "선택한 파일 없음",
+        ),
+      );
+      $("upload-btn").addEventListener("click", upload);
+      $("predict-btn").addEventListener("click", predict);
+      $("window-slider").addEventListener("input", (e) =>
+        setWindow(e.target.value),
+      );
+      $("start-row").addEventListener("change", (e) =>
+        setWindow(Number(e.target.value) - 1),
+      );
+      $("normal-btn").addEventListener("click", () => batch("normal"));
+      $("drift-btn").addEventListener("click", () => batch("drift"));
+      $("refresh-logs").addEventListener("click", refreshLogs);
+      $("log-filter").addEventListener("change", renderLogs);
+      $("overview-plot").addEventListener("click", (ev) => {
+        if (
+          !state.rows.length ||
+          state.predicting ||
+          state.busy ||
+          state.uploading
+        )
+          return;
+        const ch = charts["overview-canvas"],
+          rect = $("overview-plot").getBoundingClientRect();
+        setWindow(
+          ((ev.clientX - rect.left - ch.p.l) / ch.pw) *
+            (state.rows.length - 1) -
+            224,
+        );
+      });
+      const overviewBox = $("overview-plot");
+      overviewBox.addEventListener("pointermove", (ev) => {
+        if (!state.rows.length) return;
+        const ch = charts["overview-canvas"],
+          rect = overviewBox.getBoundingClientRect(),
+          i = Math.max(
+            0,
+            Math.min(
+              state.rows.length - 1,
+              Math.round(
+                ((ev.clientX - rect.left - ch.p.l) / ch.pw) *
+                  (state.rows.length - 1),
+              ),
+            ),
+          ),
+          r = state.rows[i],
+          tip = overviewBox.querySelector(".tooltip");
+        tip.textContent = `${i + 1}행 · ${fmt(r.t * 1e12, 2)} ps · Input_V ${fmt(r.v, 6)} V`;
+        tip.style.display = "block";
+        tip.style.left =
+          Math.max(
+            0,
+            Math.min(
+              ev.clientX - rect.left + 10,
+              overviewBox.clientWidth - tip.offsetWidth,
+            ),
+          ) + "px";
+        tip.style.top = "0";
+      });
+      overviewBox.addEventListener(
+        "pointerleave",
+        () => (overviewBox.querySelector(".tooltip").style.display = "none"),
+      );
+      bindTooltip("wave", "wave-plot", "wave");
+      bindTooltip("compare", "compare-plot", "compare");
+      bindTooltip("errors", "error-plot", "errors");
+      new ResizeObserver(drawAll).observe(document.querySelector("main"));
+      resetStages();
+      drawAll();
+      buttons();
+      health();
+      loadData();
+      refreshLogs();
+      setInterval(health, 10000);
+
+      $("records-link").addEventListener("click", () => {
+        $("history-panel").open = true;
+        $("operations").open = true;
+      });
+      $("threshold-link").addEventListener("click", () => {
+        $("threshold-help").open = true;
+        document.querySelector(".help").style.display = "block";
+      });
+    </script>
+  </body>
+</html>
