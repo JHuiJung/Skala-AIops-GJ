@@ -25,6 +25,7 @@
 import logging
 
 from serving_app.monitoring.drift_detector import is_drift
+from serving_app.mlflow_config import MODEL_NAME
 
 # "aiops" 이름의 기록장. main.py 가 이 기록장을 logs/aiops.log 파일에 연결해 두었습니다.
 logger = logging.getLogger("aiops")
@@ -83,7 +84,7 @@ def check_and_trigger(recent_predictions: list[dict]) -> dict:
     #       (train_and_register.py 의 _register_if_gate_passed 참고)
     if result["promoted"]:
         logger.info(
-            f"[OK] new_rmse={result['rmse']:.2f} - production promoted: HAIC_Predictor v{result['version']}"
+            f"[OK] new_rmse={result['rmse']:.6f} - production promoted: {MODEL_NAME} v{result['version']}"
         )
         return {"status": "retrain_triggered", "promoted": True, "rmse": result["rmse"]}
     return {"status": "retrain_triggered", "promoted": False, "rmse": result["rmse"]}

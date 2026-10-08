@@ -1,0 +1,2592 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>전압 예측 대시보드</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --bg: #eef1f3;
+        --surface: #fff;
+        --text: #202d33;
+        --muted: #61717a;
+        --line: #d8e0e4;
+        --accent: #006e7e;
+        --ok: #237347;
+        --warn: #906000;
+        --fail: #b5323e;
+        --input: #007b8b;
+        --actual: #7655a3;
+        --mono: Consolas, "SFMono-Regular", monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          500 14px/1.45 Pretendard,
+          "Malgun Gothic",
+          "Apple SD Gothic Neo",
+          sans-serif;
+        font-variant-numeric: tabular-nums;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      h2 {
+        font-size: 16px;
+      }
+      h3 {
+        font-size: 15px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        border: 1px solid #b9c8ce;
+        border-radius: 3px;
+        padding: 8px 12px;
+        background: white;
+        color: var(--text);
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      button:hover {
+        border-color: var(--accent);
+        background: #edf6f7;
+      }
+      button.primary {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+      }
+      button.danger {
+        color: var(--fail);
+        border-color: #c58e95;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      input[type="number"],
+      select {
+        padding: 5px;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: white;
+        color: var(--text);
+      }
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+      :focus-visible {
+        outline: 3px solid #38a2b1;
+        outline-offset: 2px;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .mono,
+      .num {
+        font-family: var(--mono);
+      }
+      .num {
+        letter-spacing: -0.04em;
+      }
+      .muted,
+      .tag {
+        color: var(--muted);
+      }
+      small {
+        font-size: 14px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 7px;
+        border: 1px solid currentColor;
+        border-radius: 2px;
+        font-weight: 700;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+      .pass {
+        color: var(--ok);
+        background: #eff8f2;
+      }
+      .warn {
+        color: var(--warn);
+        background: #fff7e6;
+      }
+      .fail {
+        color: var(--fail);
+        background: #fff0f1;
+      }
+      .idle {
+        color: var(--muted);
+        background: #f5f7f8;
+      }
+      .rail {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 210px;
+        background: #e0e7eb;
+        border-right: 1px solid #c8d3d9;
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+        z-index: 5;
+      }
+      .rail-brand {
+        padding: 23px 20px 19px;
+        border-bottom: 1px solid #c8d3d9;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+      .rail-brand strong {
+        font-size: 17px;
+        line-height: 1.2;
+      }
+      .rail-brand span {
+        font-family: var(--mono);
+        font-size: 22px;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .rail nav {
+        padding: 14px 10px;
+        display: grid;
+        gap: 5px;
+      }
+      .rail nav a {
+        padding: 10px 12px;
+        font-weight: 700;
+        border-left: 3px solid transparent;
+      }
+      .rail nav a:first-child {
+        background: white;
+        color: var(--accent);
+        border-left-color: var(--accent);
+      }
+      .rail nav a:hover {
+        background: #f5f8fa;
+      }
+      .rail nav b {
+        font-family: var(--mono);
+        margin-right: 9px;
+        font-size: 14px;
+        color: #7b8c96;
+      }
+      .rail-section {
+        padding: 15px 17px;
+        border-top: 1px solid #c8d3d9;
+      }
+      .rail-section h2 {
+        margin-bottom: 12px;
+      }
+      .file-picker {
+        display: block;
+        background: white;
+        border: 1px dashed #8ca3ad;
+        padding: 13px 6px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .filebox:focus-within .file-picker {
+        outline: 2px solid var(--accent);
+      }
+      #selected-file {
+        overflow-wrap: anywhere;
+        margin: 8px 0;
+        color: var(--muted);
+      }
+      .filebox button {
+        width: 100%;
+      }
+      .message {
+        color: var(--muted);
+        font-size: 14px;
+        overflow-wrap: anywhere;
+        margin-top: 8px;
+      }
+      .message:empty {
+        display: none;
+      }
+      .message.error {
+        color: var(--fail);
+        background: #fff0f1;
+        padding: 8px;
+        border-left: 3px solid var(--fail);
+      }
+      .details {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 7px;
+        margin: 10px 0 0;
+        font-size: 14px;
+      }
+      .details dt {
+        color: var(--muted);
+      }
+      .details dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .rail details {
+        margin-top: 12px;
+      }
+      .rail-footer {
+        margin-top: auto;
+        padding: 18px 17px;
+        color: var(--muted);
+        font-size: 14px;
+        border-top: 1px solid #c8d3d9;
+      }
+      .rail-footer .mono {
+        font-size: 14px;
+        color: var(--text);
+      }
+      .rail-section .badge {
+        margin-top: 8px;
+      }
+      .rail-section .stack {
+        display: grid;
+        gap: 8px;
+      }
+      .help details {
+        background: transparent;
+        margin: 10px 0;
+      }
+      .help p {
+        margin-top: 8px;
+      }
+      .help .formula {
+        font-family: var(--mono);
+        color: var(--accent);
+        font-weight: 700;
+        margin: 8px 0;
+      }
+      header {
+        margin-left: 210px;
+        min-height: 79px;
+        padding: 16px 22px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .heading {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+      }
+      .heading .label {
+        border-left: 3px solid var(--accent);
+        padding-left: 13px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .system {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .system dl {
+        margin: 0;
+      }
+      .system dt {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .system dd {
+        margin: 0;
+        font-weight: 700;
+      }
+      .system .mono {
+        font-size: 14px;
+      }
+      main {
+        margin-left: 210px;
+        padding: 16px 20px 22px;
+        max-width: 2100px;
+      }
+      .overview {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr 0.85fr 0.9fr;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .metric {
+        background: white;
+        border: 1px solid var(--line);
+        padding: 13px 16px;
+        min-width: 0;
+        position: relative;
+        min-height: 146px;
+      }
+      .metric.status {
+        border-left: 4px solid var(--warn);
+      }
+      .metric-label {
+        color: var(--muted);
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .metric-value {
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+      .metric-value small {
+        font: 500 15px/1 var(--mono);
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+      #trust-title {
+        font-size: 27px;
+        font-weight: 700;
+        margin-top: 8px;
+        line-height: 1.1;
+      }
+      .note {
+        color: var(--muted);
+        margin-top: 7px;
+        font-size: 14px;
+      }
+      .gauge {
+        height: 7px;
+        background: #e5ecef;
+        margin: 12px 0 5px;
+        position: relative;
+      }
+      .gauge:after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -4px;
+        height: 15px;
+        border-left: 2px dashed var(--fail);
+      }
+      #gauge-fill {
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+      }
+      .gauge-labels {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .metric a {
+        position: absolute;
+        right: 13px;
+        top: 13px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .metric .note-short {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .metric.status .badge {
+        font-size: 14px;
+      }
+      .banner {
+        background: #fff0f1;
+        color: var(--fail);
+        border: 1px solid #ce9ba2;
+        padding: 10px 14px;
+        margin-bottom: 14px;
+      }
+      .banner[hidden] {
+        display: none;
+      }
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+      .panel {
+        background: white;
+        border: 1px solid var(--line);
+        min-width: 0;
+        scroll-margin-top: 12px;
+      }
+      .panel-head {
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        border-bottom: 1px solid #e7ecef;
+      }
+      .panel-head .tag {
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .section-no {
+        font-family: var(--mono);
+        color: var(--accent);
+        margin-right: 6px;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 9px 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .legend span {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .swatch {
+        display: inline-block;
+        background: var(--input);
+        width: 18px;
+        height: 2px;
+      }
+      .swatch.purple {
+        background: var(--actual);
+      }
+      .swatch.point {
+        height: 6px;
+        width: 6px;
+        border-radius: 50%;
+      }
+      .swatch.pred {
+        height: 7px;
+        width: 7px;
+        background: var(--fail);
+        transform: rotate(45deg);
+      }
+      .plot {
+        position: relative;
+        height: 230px;
+        margin: 0 6px;
+      }
+      .plot canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .empty-plot {
+        position: absolute;
+        inset: 30px 45px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: var(--muted);
+        pointer-events: none;
+      }
+      .tooltip {
+        position: absolute;
+        display: none;
+        pointer-events: none;
+        z-index: 3;
+        max-width: 310px;
+        background: white;
+        border: 1px solid #8399a3;
+        padding: 8px 10px;
+        white-space: pre-line;
+        font-family: var(--mono);
+        font-size: 14px;
+      }
+      .plot.overview-plot {
+        height: 50px;
+        margin: 0 10px;
+        cursor: crosshair;
+      }
+      .window-controls {
+        padding: 7px 13px 9px;
+        border-top: 1px solid var(--line);
+      }
+      .window-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .window-row label {
+        white-space: nowrap;
+      }
+      .window-row input {
+        width: 75px;
+      }
+      .window-row button {
+        padding: 7px 10px;
+      }
+      #window-label {
+        font-size: 14px;
+      }
+      #window-slider {
+        display: block;
+        height: 13px;
+        margin: 9px 0 3px;
+      }
+      .window-hint {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .readouts {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        background: #f1f6f7;
+        border-top: 1px solid var(--line);
+        margin-top: auto;
+      }
+      .readout {
+        padding: 10px 13px;
+        border-right: 1px solid var(--line);
+      }
+      .readout:last-child {
+        border: 0;
+      }
+      .readout strong {
+        display: block;
+        font: 700 23px/1.4 var(--mono);
+        letter-spacing: -0.04em;
+      }
+      .readout strong small {
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+      #waveform {
+        display: flex;
+        flex-direction: column;
+      }
+      .compare-stack {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 14px;
+      }
+      .comparison {
+        display: flex;
+        flex-direction: column;
+      }
+      .comparison .plot {
+        height: 162px;
+        flex: 1;
+        min-height: 145px;
+      }
+      .comparison .legend {
+        padding: 7px 13px;
+      }
+      .comparison .panel-head {
+        padding: 11px 13px;
+      }
+      .comparison .chart-caption {
+        font-size: 14px;
+        padding: 0 13px 8px;
+        color: var(--muted);
+      }
+      .comparison .plot canvas {
+        position: absolute;
+        inset: 0;
+      }
+      .pipeline {
+        margin-top: 14px;
+      }
+      .pipeline .panel-head {
+        border: 0;
+        padding-bottom: 5px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        padding: 7px 14px 13px;
+        gap: 7px;
+      }
+      .step {
+        position: relative;
+        min-width: 0;
+        padding: 11px 9px 12px;
+        border: 1px solid #c7d1d7;
+        border-top: 5px solid #a9bac3;
+        background: #eaf0f3;
+        border-radius: 3px;
+        color: #4e606a;
+        min-height: 125px;
+      }
+      .step.done {
+        background: #237347;
+        border-color: #195c37;
+        color: #fff;
+      }
+      .step.active {
+        background: #ffe7a0;
+        border: 2px solid #946200;
+        border-top-width: 5px;
+        color: #553900;
+      }
+      .step.failed {
+        background: #b5323e;
+        border-color: #8d2430;
+        color: #fff;
+      }
+      .step-num {
+        font-family: var(--mono);
+        font-size: 14px;
+        font-weight: 700;
+        display: inline-block;
+        padding: 2px 5px;
+        background: #ffffff90;
+        border-radius: 2px;
+        color: #354b57;
+      }
+      .step.done .step-num,
+      .step.failed .step-num {
+        background: #ffffff26;
+        color: #fff;
+      }
+      .step.active .step-num {
+        background: #fff5d7;
+        color: #553900;
+      }
+      .step b {
+        word-break: keep-all;
+        display: block;
+        margin: 9px 0 5px;
+        font-size: 14px;
+        line-height: 1.35;
+      }
+      .step small {
+        display: block;
+        color: inherit;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .pipeline-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 5px 14px 8px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .pipeline-legend span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pipeline-legend i {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 2px;
+      }
+      .pipeline details {
+        border-top: 1px solid #e8edef;
+        padding: 6px 14px;
+      }
+      .pipeline-note {
+        padding: 7px 0;
+        color: var(--muted);
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 14px;
+      }
+      details[open] > summary {
+        color: var(--accent);
+      }
+      .batch-controls {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .record-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .record-panel > summary {
+        padding: 13px 15px;
+        color: var(--text);
+      }
+      .record-panel .panel-head {
+        border-top: 1px solid var(--line);
+      }
+      .record-panel .panel-head h2 {
+        font-size: 14px;
+      }
+      .table-wrap {
+        overflow: auto;
+        max-height: 260px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 9px 12px;
+        border-bottom: 1px solid #e6ecef;
+        text-align: left;
+      }
+      th {
+        background: #f5f8f9;
+        position: sticky;
+        top: 0;
+        color: var(--muted);
+      }
+      td.empty {
+        padding: 25px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .logs {
+        height: 230px;
+        overflow: auto;
+        background: #f8fafb;
+        padding: 6px 12px;
+        font: 500 14px/1.5 var(--mono);
+      }
+      .logline {
+        display: grid;
+        grid-template-columns: 45px 1fr;
+        gap: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid #e4eaed;
+        overflow-wrap: anywhere;
+      }
+      .loglevel {
+        font-weight: 700;
+      }
+      .logline.WARN .loglevel {
+        color: var(--warn);
+      }
+      .logline.OK .loglevel {
+        color: var(--ok);
+      }
+      .logline.ERROR .loglevel {
+        color: var(--fail);
+      }
+      #log-message {
+        padding: 8px 12px;
+      }
+      .foot {
+        color: var(--muted);
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        padding-top: 11px;
+      }
+      .sr-only {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+      }
+      .compact-info {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .compact-info strong {
+        color: var(--text);
+      }
+      @media (min-width: 1600px) {
+        .rail {
+          width: 230px;
+        }
+        header,
+        main {
+          margin-left: 230px;
+        }
+        main {
+          padding: 20px 26px;
+        }
+        .metric-value {
+          font-size: 43px;
+        }
+        .metric {
+          padding: 16px 20px;
+        }
+        .plot {
+          height: 270px;
+        }
+        .comparison .plot {
+          min-height: 180px;
+        }
+        .readout strong {
+          font-size: 28px;
+        }
+        .steps {
+          padding-bottom: 16px;
+        }
+        .step b {
+        word-break: keep-all;
+          font-size: 15px;
+        }
+      }
+      @media (max-width: 1150px) {
+        .rail {
+          width: 185px;
+        }
+        header,
+        main {
+          margin-left: 185px;
+        }
+        header {
+          padding: 13px 16px;
+        }
+        .heading .label {
+          display: none;
+        }
+        .system {
+          gap: 10px;
+        }
+        main {
+          padding: 14px;
+        }
+        .overview {
+          gap: 8px;
+        }
+        .metric {
+          padding: 12px;
+        }
+        .metric-value {
+          font-size: 30px;
+        }
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+        .compare-stack {
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto;
+        }
+        .comparison .plot {
+          height: 190px;
+          flex: auto;
+        }
+        .plot {
+          height: 260px;
+        }
+        .steps {
+          grid-template-columns: repeat(4, 1fr);
+          row-gap: 14px;
+        }
+        .record-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 760px) {
+        .rail {
+          position: relative;
+          width: auto;
+          height: auto;
+          overflow: visible;
+          display: block;
+        }
+        .rail-brand {
+          padding: 12px 16px;
+        }
+        .rail nav {
+          display: flex;
+          padding: 6px;
+          flex-wrap: wrap;
+        }
+        .rail-section {
+          padding: 12px 16px;
+        }
+        .rail-section.help,
+        .rail-footer {
+          display: none;
+        }
+        .rail-section .stack {
+          grid-template-columns: 1fr 1fr;
+        }
+        .rail-section .filebox {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+        .file-picker {
+          padding: 8px;
+        }
+        #selected-file {
+          grid-column: 1/-1;
+          grid-row: 2;
+        }
+        .rail-section details {
+          margin: 7px 0;
+        }
+        .rail-section h2 {
+          margin-bottom: 8px;
+        }
+        header,
+        main {
+          margin-left: 0;
+        }
+        .system dl {
+          display: none;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        .overview {
+          grid-template-columns: 1fr 1fr;
+        }
+        .metric {
+          min-height: 145px;
+        }
+        .compare-stack {
+          grid-template-columns: 1fr;
+        }
+        .window-row {
+          flex-wrap: wrap;
+        }
+        .readout strong {
+          font-size: 20px;
+        }
+        .steps {
+          grid-template-columns: 1fr 1fr;
+        }
+        .foot {
+          display: block;
+        }
+        .heading .label {
+          display: none;
+        }
+        .legend {
+          gap: 9px;
+        }
+        .record-panel .panel-head {
+          flex-wrap: wrap;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="rail">
+      <div class="rail-brand">
+        <span>E / V</span
+        ><strong>회로 검증<br /><small>모델 운영</small></strong>
+      </div>
+      <nav aria-label="화면 탐색">
+        <a href="#overview"><b>01</b>운영 현황</a
+        ><a href="#waveform"><b>02</b>파형 검증</a
+        ><a href="#records" id="records-link"><b>03</b>이력 · 로그</a>
+      </nav>
+      <section class="rail-section" id="data-controls">
+        <h2>검증 데이터</h2>
+        <div class="filebox">
+          <label class="file-picker" for="csv-file">＋ CSV 선택</label
+          ><input
+            class="sr-only"
+            id="csv-file"
+            type="file"
+            accept=".csv,text/csv"
+          />
+          <p id="selected-file">선택한 파일 없음</p>
+          <button id="upload-btn" class="primary">재학습용 저장</button>
+        </div>
+        <span id="upload-badge" class="badge idle">○ 미등록</span>
+        <p id="upload-message" class="message" role="status"></p>
+        <details>
+          <summary>데이터 정보</summary>
+          <dl class="details">
+            <dt>파일</dt>
+            <dd id="data-name">—</dd>
+            <dt>시간</dt>
+            <dd id="data-time">— ps</dd>
+            <dt>Input_V</dt>
+            <dd id="data-input">— V</dd>
+            <dt>끝단 E</dt>
+            <dd id="data-e">— V</dd>
+          </dl>
+          <p id="data-top" class="sr-only"></p>
+        </details>
+      </section>
+      <section class="rail-section" id="simulation">
+        <h2>배치 시뮬레이션</h2>
+        <div class="stack">
+          <button id="normal-btn">정상 배치 실행</button
+          ><button id="drift-btn" class="danger">드리프트 배치 실행</button>
+        </div>
+        <span id="batch-state" class="badge idle">○ 실행 대기</span>
+        <div id="batch-message" class="message" role="status"></div>
+      </section>
+      <section class="rail-section help" id="help">
+        <h2>측정 안내</h2>
+        <details>
+          <summary>입력 · 전처리</summary>
+          <p>CSV: TIME, Input_V, E / 예측 최소 450행 · 재학습 저장 최소 650행.</p>
+          <div class="formula">450행 → 150점 → E</div>
+          <p>
+            3행 간격의 Input_V 150개로 시작 위치 +449행의 E를 예측합니다.
+            스케일링 없음.
+          </p>
+          <p>
+            E는 신호가 가장 약하고 늦게 도착하는 회로 끝단입니다. 단일 예측은
+            드리프트 기록에 포함하지 않습니다.
+          </p>
+        </details>
+        <details id="threshold-help">
+          <summary>12 mV 기준</summary>
+          <div class="formula">1.2 V × 1% = 12 mV</div>
+          <p>
+            DDR4 판정 기준 전압 허용 흔들림을 참고한 프로젝트 운영 기준입니다.
+          </p>
+          <p>
+            배포 게이트 ≤ 12 mV<br />드리프트 &gt; 12 mV<br />21건 미만은 판정
+            대기
+          </p>
+        </details>
+        <details>
+          <summary>배치 · 재학습 데이터</summary>
+          <p>
+            SKHY_test_answer.csv 무작위 구간 21건. 드리프트는 입력·정답 전압을
+            3배 적용합니다.
+          </p>
+          <p>
+            업로드 CSV와 별개이며 재학습은 서버 테스트 데이터의 마지막 470행을
+            사용합니다.
+          </p>
+        </details>
+      </section>
+      <div class="rail-footer">
+        <div class="mono">SKHY_Voltage_Predictor</div>
+        <div>서버 확인 · 10초 주기</div>
+        <div id="health-time">—</div>
+      </div>
+    </aside>
+    <header>
+      <div class="heading">
+        <h1>전압 예측 대시보드</h1>
+        <span class="label">DRAM · 지점 E</span>
+      </div>
+      <div class="system">
+        <dl>
+          <dt>로딩</dt>
+          <dd id="loading">확인 중</dd>
+        </dl>
+        <dl>
+          <dt>서빙 버전</dt>
+          <dd id="model-version" class="mono">미확인</dd>
+        </dl>
+        <span id="connection" class="badge warn" role="status"
+          >○ 연결 확인 중</span
+        >
+      </div>
+    </header>
+    <main id="overview">
+      <div id="connection-alert" class="banner" role="alert" hidden></div>
+      <section class="overview" aria-label="핵심 운영 지표">
+        <div class="metric status" id="status-metric">
+          <div class="metric-label">모델 상태</div>
+          <span id="trust-badge" class="badge warn">○ WARN · 판정 대기</span>
+          <div id="trust-title">판정 대기</div>
+          <p id="trust-note" class="note">배치 21건 필요</p>
+        </div>
+        <div class="metric">
+          <div class="metric-label">최근 21건 RMSE</div>
+          <div class="metric-value num">
+            <span id="rmse">—</span> <small>mV</small>
+          </div>
+          <div class="gauge" aria-label="RMSE 위치 · 0에서 24mV">
+            <div id="gauge-fill"></div>
+          </div>
+          <div class="gauge-labels">
+            <span>0</span><span>12 mV</span><span>24 mV</span>
+          </div>
+          <p id="rmse-note" class="note">0 / 21건</p>
+        </div>
+        <div class="metric">
+          <div class="metric-label">관리 기준</div>
+          <div class="metric-value num">12 <small>mV</small></div>
+          <p class="note">이하 통과 · 초과 감지</p>
+          <a
+            href="#threshold-help"
+            id="threshold-link"
+            aria-label="12mV 기준 근거 보기"
+            >ⓘ</a
+          >
+          <p class="note">1.2 V × 1%</p>
+        </div>
+        <div class="metric">
+          <div class="metric-label">검증 데이터</div>
+          <div class="metric-value num">
+            <span id="row-count">—</span> <small>행</small>
+          </div>
+          <p id="data-range" class="note">Input_V · E / V</p>
+          <p class="note">입력 450행 / 150점</p>
+        </div>
+      </section>
+      <div class="dashboard-grid">
+        <section class="panel" id="waveform">
+          <div class="panel-head">
+            <h2>입력 파형 · 끝단 E</h2>
+            <span class="tag">450행 윈도우</span>
+          </div>
+          <div class="legend">
+            <span><i class="swatch"></i>Input_V</span
+            ><span><i class="swatch purple"></i>실제 E</span
+            ><span><i class="swatch point"></i>150점</span
+            ><span><i class="swatch pred"></i>예측 E</span>
+          </div>
+          <div
+            class="plot"
+            id="wave-plot"
+            tabindex="0"
+            role="img"
+            aria-label="전압 파형. 마우스 또는 좌우 방향키로 값 확인"
+          >
+            <canvas id="wave"></canvas>
+            <div class="empty-plot" id="wave-empty">
+              CSV를 업로드하세요<br />TIME · Input_V · E
+            </div>
+            <div class="tooltip"></div>
+          </div>
+          <div
+            class="plot overview-plot"
+            id="overview-plot"
+            role="img"
+            aria-label="전체 파형과 선택 구간"
+          >
+            <canvas id="overview-canvas"></canvas>
+            <div class="tooltip"></div>
+          </div>
+          <div class="window-controls">
+            <div class="window-row">
+              <label for="start-row"
+                >시작 행
+                <input
+                  id="start-row"
+                  type="number"
+                  min="1"
+                  value="1"
+                  disabled /></label
+              ><span id="window-label" class="mono muted">— / 450행</span
+              ><button id="predict-btn" class="primary" disabled>
+                구간 예측
+              </button>
+            </div>
+            <label class="sr-only" for="window-slider">윈도우 시작 위치</label
+            ><input
+              id="window-slider"
+              type="range"
+              min="0"
+              max="0"
+              value="0"
+              disabled
+            />
+            <div class="window-hint"><span id="time-range">— ps</span></div>
+            <p id="predict-message" class="message" role="status"></p>
+          </div>
+          <div class="readouts">
+            <div class="readout">
+              <span class="muted">예측 E</span
+              ><strong><span id="predicted-e">—</span> <small>V</small></strong>
+            </div>
+            <div class="readout">
+              <span class="muted">실제 E</span
+              ><strong><span id="actual-e">—</span> <small>V</small></strong>
+            </div>
+            <div class="readout">
+              <span class="muted">차이</span
+              ><strong><span id="error-e">—</span> <small>mV</small></strong>
+            </div>
+          </div>
+        </section>
+        <div class="compare-stack">
+          <section class="panel comparison">
+            <div class="panel-head">
+              <h2>실제 vs 예측</h2>
+              <span class="tag">최근 배치 21건</span>
+            </div>
+            <div class="legend">
+              <span><i class="swatch purple"></i>실제 E</span
+              ><span><i class="swatch"></i>예측 E</span>
+            </div>
+            <div
+              class="plot"
+              id="compare-plot"
+              tabindex="0"
+              role="img"
+              aria-label="배치 21건 실제 및 예측 전압"
+            >
+              <canvas id="compare"></canvas>
+              <div class="empty-plot" id="compare-empty">배치 실행 대기</div>
+              <div class="tooltip"></div>
+            </div>
+          </section>
+          <section class="panel comparison">
+            <div class="panel-head">
+              <h2>건별 절대 오차</h2>
+              <span id="batch-rmse" class="tag">RMSE — mV</span>
+            </div>
+            <div class="legend">
+              <span><i class="swatch"></i>절대 오차</span
+              ><span style="color: var(--fail)">┄ 12 mV / □ 초과</span>
+            </div>
+            <div
+              class="plot"
+              id="error-plot"
+              tabindex="0"
+              role="img"
+              aria-label="절대 오차와 12mV 기준선"
+            >
+              <canvas id="errors"></canvas>
+              <div class="empty-plot" id="error-empty">배치 실행 대기</div>
+              <div class="tooltip"></div>
+            </div>
+            <p class="chart-caption">판정 기준: 건별 오차가 아닌 21건 RMSE</p>
+          </section>
+        </div>
+      </div>
+      <section class="panel pipeline" id="pipeline">
+        <div class="panel-head">
+          <h2>재학습 파이프라인</h2>
+          <span id="pipeline-badge" class="badge idle">○ 실행 대기</span>
+        </div>
+        <div class="pipeline-legend" aria-label="파이프라인 상태 색상">
+          <span><i style="background: #237347"></i>완료</span
+          ><span
+            ><i style="background: #ffe7a0; border: 1px solid #946200"></i>진행
+            중</span
+          ><span><i style="background: #b5323e"></i>실패</span
+          ><span><i style="background: #a9bac3"></i>대기 · 해당 없음</span>
+        </div>
+        <div id="steps" class="steps" aria-live="polite"></div>
+        <details>
+          <summary>처리 상세</summary>
+          <p id="pipeline-note" class="pipeline-note">
+            실제 로그와 최종 응답으로 진행 상태를 확인합니다. Registry 승격은
+            현재 서빙 캐시의 교체를 보장하지 않습니다.
+          </p>
+        </details>
+      </section>
+      <div class="record-grid" id="records">
+        <details class="panel record-panel" id="history-panel">
+          <summary>배치 실행 이력</summary>
+          <div class="panel-head"><h2>현재 화면 세션</h2></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>순번</th>
+                  <th>시각</th>
+                  <th>종류</th>
+                  <th>RMSE</th>
+                  <th>판정</th>
+                  <th>승격 여부</th>
+                </tr>
+              </thead>
+              <tbody id="history">
+                <tr>
+                  <td class="empty" colspan="6">실행 이력 없음</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <details class="panel record-panel" id="operations">
+          <summary>운영 로그 · aiops.log</summary>
+          <div class="panel-head">
+            <h2>서버 로그</h2>
+            <div class="batch-controls">
+              <label class="sr-only" for="log-filter">로그 레벨</label
+              ><select id="log-filter">
+                <option value="ALL">전체 레벨</option>
+                <option value="WARN">WARN</option>
+                <option value="INFO">INFO</option>
+                <option value="OK">OK</option>
+                <option value="ERROR">ERROR</option></select
+              ><button id="refresh-logs">새로고침</button>
+            </div>
+          </div>
+          <div id="logs" class="logs" role="log" aria-label="운영 로그">
+            로그 확인 중
+          </div>
+          <p id="log-message" class="message" role="status"></p>
+        </details>
+      </div>
+      <footer class="foot">
+        <span id="last-run">배치 측정 대기</span
+        ><span>전압 V · 오차 mV · 시간 ps</span>
+      </footer>
+    </main>
+    <script>
+      "use strict";
+      // Local-only UI: no external libraries, requests, fonts, or synthetic measurements.
+      const $ = (id) => document.getElementById(id),
+        C = {
+          input: "#007b8b",
+          actual: "#7655a3",
+          error: "#b5323e",
+          grid: "#e0e7e9",
+          text: "#5d6b72",
+        },
+        LIMIT = 12;
+      const state = {
+        rows: [],
+        start: 0,
+        pred: null,
+        batch: null,
+        history: [],
+        connected: false,
+        busy: false,
+        uploading: false,
+        predicting: false,
+        logs: "",
+        logBase: "",
+        logBusy: false,
+        activeRun: false,
+        run: 0,
+        stage: [],
+        cursors: {},
+        version: null,
+        selectedRaw: null,
+        selectedFileName: null,
+      };
+      const stageTitles = [
+        "데이터 수집",
+        "예측 기록",
+        "드리프트 감지",
+        "재학습 트리거",
+        "fine-tuning",
+        "게이트 재검증",
+        "Production 승격",
+      ];
+      function text(id, value) {
+        $(id).textContent = value;
+      }
+      function fmt(v, n = 3) {
+        return Number.isFinite(v) ? v.toFixed(n) : "—";
+      }
+      function clock() {
+        return new Date().toLocaleTimeString("ko-KR", { hour12: false });
+      }
+      function message(id, value, error = false) {
+        text(id, value);
+        $(id).classList.toggle("error", error);
+      }
+      function badge(id, label, level = "idle") {
+        const el = $(id);
+        el.className = "badge " + level;
+        el.textContent = label;
+      }
+      function buttons() {
+        $("upload-btn").disabled =
+          state.uploading || state.busy || state.predicting || !state.selectedRaw;
+        $("csv-file").disabled =
+          state.uploading || state.busy || state.predicting;
+        for (const id of ["normal-btn", "drift-btn"])
+          $(id).disabled =
+            state.busy ||
+            state.uploading ||
+            state.predicting ||
+            !state.connected;
+        $("predict-btn").disabled =
+          !state.rows.length ||
+          state.busy ||
+          state.uploading ||
+          state.predicting ||
+          !state.connected;
+        for (const id of ["start-row", "window-slider"])
+          $(id).disabled =
+            !state.rows.length ||
+            state.predicting ||
+            state.uploading ||
+            state.busy;
+      }
+      async function api(path, options = {}, timeout = 15000) {
+        const ctl = new AbortController(),
+          timer = setTimeout(() => ctl.abort(), timeout);
+        try {
+          const r = await fetch(path, {
+            ...options,
+            signal: ctl.signal,
+            cache: "no-store",
+          });
+          const raw = await r.text();
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            data = null;
+          }
+          if (!r.ok) {
+            let detail = typeof data?.detail === "string" ? data.detail : null;
+            throw new Error(
+              detail ||
+                (r.status === 422
+                  ? "입력 형식이 올바르지 않습니다. 연속 450개의 전압값이 필요합니다."
+                  : r.status === 500
+                    ? "서버 처리에 실패했습니다. 모델 파일과 MLflow 연결 상태를 확인하세요."
+                    : `요청을 처리하지 못했습니다. (HTTP ${r.status})`),
+            );
+          }
+          if (data === null)
+            throw new Error(
+              "서버 응답을 읽을 수 없습니다. 서버 주소와 실행 상태를 확인하세요.",
+            );
+          return data;
+        } catch (e) {
+          if (e.name === "AbortError")
+            throw new Error(
+              "응답 대기 시간이 지났습니다. 서버에서 작업이 계속 진행될 수 있으니 로그를 확인하세요.",
+            );
+          if (e instanceof TypeError)
+            throw new Error(
+              "서버에 연결할 수 없습니다. 서버 실행 상태를 확인하세요.",
+            );
+          throw e;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      async function health() {
+        try {
+          const h = await api("/health", {}, 7000);
+          state.connected = h.status === "ok";
+          if (!state.connected) throw new Error("서버가 정상 상태가 아닙니다.");
+          badge("connection", "● 서버 연결", "pass");
+          text(
+            "loading",
+            `${h.loading_mode === "lazy" ? "지연 로딩" : h.loading_mode === "eager" ? "시작 시 로딩" : h.loading_mode} · ${h.model_loaded ? "준비됨" : "대기"}`,
+          );
+          text("health-time", clock());
+          $("connection-alert").hidden = true;
+        } catch (e) {
+          state.connected = false;
+          badge("connection", "× 연결 끊김", "fail");
+          text("loading", "서버 확인 불가");
+          $("connection-alert").hidden = false;
+          text(
+            "connection-alert",
+            location.protocol === "file:"
+              ? "HTML 파일만 열린 상태입니다. 이 파일을 serving_app/static/index.html로 저장하고 프로젝트 폴더에서 uvicorn serving_app.main:app --port 8077을 실행한 뒤 http://localhost:8077로 접속하세요. 그래프는 CSV 업로드와 배치 실행 후 표시됩니다."
+              : "서버에 연결할 수 없습니다. 미리보기에서 열었다면 프로젝트 서버를 실행한 뒤 http://localhost:8077로 접속하세요. 기존 측정값은 마지막 결과이며 최신 상태가 아닙니다.",
+          );
+        }
+        buttons();
+      }
+      function dataSummary(d) {
+        if (!d.exists) {
+          text("data-top", "업로드된 CSV가 없습니다.");
+          return;
+        }
+        text("row-count", d.rows.toLocaleString("ko-KR"));
+        text("data-top", `${d.filename}`);
+        text(
+          "data-range",
+          `Input_V ${fmt(d.min_input_v)}–${fmt(d.max_input_v)} V`,
+        );
+        text("data-name", d.filename);
+        text(
+          "data-time",
+          `${fmt(d.start_time * 1e12, 1)}–${fmt(d.end_time * 1e12, 1)} ps`,
+        );
+        text("data-input", `${fmt(d.min_input_v)}–${fmt(d.max_input_v)} V`);
+        text("data-e", `${fmt(d.min_e)}–${fmt(d.max_e)} V`);
+        badge("upload-badge", "✓ 등록됨", "pass");
+        if (!state.rows.length)
+          message(
+            "upload-message",
+            "서버에 데이터가 있습니다. 파형을 보려면 해당 CSV를 다시 선택해 업로드하세요.",
+          );
+      }
+      async function loadData() {
+        try {
+          dataSummary(await api("/data/status"));
+        } catch (e) {
+          message(
+            "upload-message",
+            "데이터 상태 조회 실패: " + e.message,
+            true,
+          );
+        }
+      }
+      // RFC-style quoted fields, CRLF, optional UTF-8 BOM; rejects missing, nonfinite and malformed values.
+      function parseCSV(raw) {
+        const s = raw.replace(/^\uFEFF/, "");
+        let records = [],
+          row = [],
+          field = "",
+          quoted = false,
+          closed = false;
+        for (let i = 0; i < s.length; i++) {
+          const c = s[i];
+          if (quoted) {
+            if (c === '"') {
+              if (s[i + 1] === '"') {
+                field += '"';
+                i++;
+              } else {
+                quoted = false;
+                closed = true;
+              }
+            } else field += c;
+          } else if (c === '"') {
+            if (field !== "" || closed)
+              throw new Error("CSV 따옴표 형식이 올바르지 않습니다.");
+            quoted = true;
+          } else if (c === "," || c === "\n" || c === "\r") {
+            row.push(field);
+            field = "";
+            closed = false;
+            if (c !== ",") {
+              if (row.some((v) => v.trim() !== "")) records.push(row);
+              row = [];
+              if (c === "\r" && s[i + 1] === "\n") i++;
+            }
+          } else {
+            if (closed)
+              throw new Error(
+                "닫는 따옴표 뒤에 올바르지 않은 문자가 있습니다.",
+              );
+            field += c;
+          }
+        }
+        if (quoted) throw new Error("CSV에 닫히지 않은 따옴표가 있습니다.");
+        if (field !== "" || row.length) {
+          row.push(field);
+          if (row.some((v) => v.trim() !== "")) records.push(row);
+        }
+        if (!records.length) throw new Error("CSV가 비어 있습니다.");
+        const header = records.shift();
+        const columns = ["TIME", "Input_V", "E"];
+        if (new Set(header).size !== header.length)
+          throw new Error("CSV에 중복된 컬럼명이 있습니다.");
+        const ix = columns.map((c) => header.indexOf(c));
+        if (ix.some((i) => i < 0))
+          throw new Error(
+            "필수 컬럼 TIME, Input_V, E를 정확히 포함해야 합니다.",
+          );
+        if (records.length < 450)
+          throw new Error(
+            `예측에는 최소 450행이 필요합니다. 현재 ${records.length}행입니다.`,
+          );
+        const decimal = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/;
+        return records.map((r, i) => {
+          if (r.length !== header.length)
+            throw new Error(`${i + 2}행의 컬럼 수가 올바르지 않습니다.`);
+          const values = ix.map((k, j) => {
+            const v = r[k].trim(),
+              n = Number(v);
+            if (!decimal.test(v) || !Number.isFinite(n))
+              throw new Error(
+                `${i + 2}행 ${columns[j]} 값은 유한한 숫자여야 합니다.`,
+              );
+            return n;
+          });
+          return { t: values[0], v: values[1], e: values[2] };
+        });
+      }
+      async function selectCSV() {
+        const file = $("csv-file").files[0];
+        if (!file) {
+          state.selectedRaw = null;
+          state.selectedFileName = null;
+          state.rows = [];
+          text("selected-file", "선택한 파일 없음");
+          buttons();
+          return;
+        }
+        text("selected-file", file.name);
+        if (!/\.csv$/i.test(file.name)) {
+          state.selectedRaw = null;
+          state.selectedFileName = null;
+          state.rows = [];
+          message("upload-message", "확장자가 .csv인 파일을 선택하세요.", true);
+          buttons();
+          return;
+        }
+        state.uploading = true;
+        buttons();
+        message("upload-message", "CSV를 브라우저에서 확인하고 있습니다.");
+        try {
+          const raw = new TextDecoder("utf-8", { fatal: true }).decode(
+            await file.arrayBuffer(),
+          );
+          const rows = parseCSV(raw);
+          state.selectedRaw = raw.replace(/^\uFEFF/, "");
+          state.selectedFileName = file.name;
+          state.rows = rows;
+          state.start = 0;
+          state.pred = null;
+          state.cursors = {};
+          $("window-slider").max = rows.length - 450;
+          $("start-row").max = rows.length - 449;
+          setWindow(0);
+          text("row-count", rows.length.toLocaleString("ko-KR"));
+          text("data-name", file.name);
+          text(
+            "data-time",
+            `${fmt(rows[0].t * 1e12, 1)}–${fmt(rows.at(-1).t * 1e12, 1)} ps`,
+          );
+          let minInput = Infinity,
+            maxInput = -Infinity,
+            minE = Infinity,
+            maxE = -Infinity;
+          for (const row of rows) {
+            minInput = Math.min(minInput, row.v);
+            maxInput = Math.max(maxInput, row.v);
+            minE = Math.min(minE, row.e);
+            maxE = Math.max(maxE, row.e);
+          }
+          text("data-input", `${fmt(minInput)}–${fmt(maxInput)} V`);
+          text("data-e", `${fmt(minE)}–${fmt(maxE)} V`);
+          text("data-range", `Input_V ${fmt(minInput)}–${fmt(maxInput)} V`);
+          badge("upload-badge", "○ 저장 안 됨", "warn");
+          message(
+            "upload-message",
+            `${rows.length.toLocaleString()}행 예측 준비 완료 · 서버에는 저장하지 않았습니다.`,
+          );
+        } catch (e) {
+          state.selectedRaw = null;
+          state.selectedFileName = null;
+          state.rows = [];
+          message(
+            "upload-message",
+            e instanceof TypeError
+              ? "UTF-8 CSV 파일인지 확인하세요."
+              : e.message,
+            true,
+          );
+        } finally {
+          state.uploading = false;
+          buttons();
+        }
+      }
+
+      async function upload() {
+        if (!state.selectedRaw || !state.selectedFileName) {
+          message("upload-message", "먼저 CSV 파일을 선택하세요.", true);
+          return;
+        }
+        if (state.rows.length < 650) {
+          message(
+            "upload-message",
+            `재학습용 저장에는 최소 650행이 필요합니다. 현재 ${state.rows.length}행입니다.`,
+            true,
+          );
+          return;
+        }
+        state.uploading = true;
+        buttons();
+        message("upload-message", "재학습용 데이터를 서버에 저장하고 있습니다.");
+        try {
+          const form = new FormData();
+          form.append(
+            "file",
+            new Blob([state.selectedRaw], { type: "text/csv" }),
+            state.selectedFileName,
+          );
+          const result = await api(
+            "/data/upload",
+            { method: "POST", body: form },
+            60000,
+          );
+          await loadData();
+          message(
+            "upload-message",
+            `${result.rows.toLocaleString()}행 재학습용 저장 완료`,
+          );
+        } catch (e) {
+          message("upload-message", e.message, true);
+        } finally {
+          state.uploading = false;
+          buttons();
+        }
+      }
+      function setWindow(start) {
+        state.start = Math.max(
+          0,
+          Math.min(state.rows.length - 450, Math.round(Number(start) || 0)),
+        );
+        state.pred = null;
+        state.cursors.wave = null;
+        $("window-slider").value = state.start;
+        $("start-row").value = state.start + 1;
+        text(
+          "window-label",
+          `${(state.start + 1).toLocaleString()}–${(state.start + 450).toLocaleString()}행 / 450행`,
+        );
+        const first = state.rows[state.start],
+          last = state.rows[state.start + 449];
+        text(
+          "time-range",
+          `${fmt(first.t * 1e12, 2)}–${fmt(last.t * 1e12, 2)} ps`,
+        );
+        text("predicted-e", "—");
+        text("actual-e", fmt(last.e, 6));
+        text("error-e", "—");
+        message("predict-message", "");
+        $("wave-empty").hidden = true;
+        $("wave-empty").style.display = "none";
+        drawAll();
+      }
+      async function predict() {
+        if (!state.rows.length || state.predicting) return;
+        state.predicting = true;
+        buttons();
+        message("predict-message", "선택 구간의 전압을 예측하고 있습니다.");
+        const start = state.start;
+        try {
+          const r = await api(
+            "/predict",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sequence: state.rows.slice(start, start + 450).map((r) => r.v),
+              }),
+            },
+            120000,
+          );
+          if (!Number.isFinite(r.predicted_e))
+            throw new Error("예측 응답에 유효한 전압값이 없습니다.");
+          state.pred = r.predicted_e;
+          state.version = r.model_version;
+          text("model-version", r.model_version);
+          text("predicted-e", fmt(state.pred, 6));
+          const diff = (state.pred - state.rows[start + 449].e) * 1000;
+          text("error-e", (diff > 0 ? "+" : "") + fmt(diff));
+          message("predict-message", `예측 완료 · ${r.model_version}`);
+          drawWave();
+          await health();
+        } catch (e) {
+          message("predict-message", e.message, true);
+        } finally {
+          state.predicting = false;
+          buttons();
+        }
+      }
+      function trust(level, title, note) {
+        badge(
+          "trust-badge",
+          `${level === "pass" ? "✓ PASS" : level === "fail" ? "× FAIL" : "○ WARN"}`,
+          level,
+        );
+        text("trust-title", title);
+        text(
+          "trust-note",
+          title === "승격 완료"
+            ? "현재 서빙 모델 재검증 필요"
+            : title === "정상"
+              ? "기준 이내 · 운영 가능"
+              : title === "승격 실패"
+                ? "기존 Production 유지"
+                : title === "감지"
+                  ? "12 mV 기준 초과"
+                  : title === "재학습 중"
+                    ? "로그 확인 · 응답 대기"
+                    : note,
+        );
+        $("status-metric").style.borderLeftColor =
+          level === "pass"
+            ? "var(--ok)"
+            : level === "fail"
+              ? "var(--fail)"
+              : "var(--warn)";
+      }
+      function renderMetric(r) {
+        const score = r.window_rmse === null ? null : r.window_rmse * 1000;
+        text("rmse", fmt(score));
+        text("batch-rmse", `RMSE ${fmt(score)} mV`);
+        $("gauge-fill").style.width =
+          score === null ? "0" : Math.min((score / 24) * 100, 100) + "%";
+        $("gauge-fill").style.background =
+          score > 12 ? "var(--fail)" : "var(--accent)";
+        text(
+          "rmse-note",
+          score === null
+            ? "21건 미만 · 판정 대기"
+            : `${r.predictions.length} / 21건 · 기준의 ${fmt((score / 12) * 100, 1)}%${score > 24 ? " · 표시 범위 초과" : ""}`,
+        );
+        text("last-run", `${clock()} 측정 · 최근 21건`);
+      }
+      function resetStages() {
+        state.stage = stageTitles.map(() => ({ mode: "", label: "대기" }));
+        renderStages();
+      }
+      function stage(i, mode, label) {
+        state.stage[i] = { mode, label };
+        renderStages();
+      }
+      function renderStages() {
+        const el = $("steps");
+        el.replaceChildren();
+        state.stage.forEach((s, i) => {
+          const div = document.createElement("div");
+          div.className = "step " + s.mode;
+          const n = document.createElement("span");
+          n.className = "step-num";
+          n.textContent =
+            String(i + 1).padStart(2, "0") +
+            " / " +
+            (s.mode === "done"
+              ? "✓ 완료"
+              : s.mode === "failed"
+                ? "× 실패"
+                : s.mode === "active"
+                  ? "○ 진행"
+                  : s.label === "해당 없음"
+                    ? "— 제외"
+                    : "— 대기");
+          const b = document.createElement("b");
+          b.textContent = stageTitles[i];
+          const d = document.createElement("small");
+          d.textContent = s.label;
+          div.append(n, b, d);
+          el.append(div);
+        });
+      }
+      function liveStages(fresh) {
+        if (!state.activeRun) return;
+        if (fresh.includes("[WARN] drift detected")) {
+          stage(0, "done", "수집 확인");
+          stage(1, "done", "21건 기록");
+          stage(2, "done", "기준 초과 감지");
+          trust("fail", "감지", "최근 21건 오차가 기준을 초과했습니다.");
+          badge("pipeline-badge", "○ 드리프트 감지", "warn");
+        }
+        if (fresh.includes("[INFO] retrain triggered")) {
+          stage(3, "done", "트리거 확인");
+          stage(4, "active", "학습·평가 응답 대기");
+          trust(
+            "warn",
+            "재학습 중",
+            "트리거 로그 확인 · 세부 학습 단계는 응답 대기",
+          );
+          badge("pipeline-badge", "○ 재학습 중", "warn");
+        }
+      }
+      const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      async function finishStages(r) {
+        const d = r.drift_check;
+        stage(0, "done", "수집 확인");
+        await pause(100);
+        stage(1, "done", `${r.predictions.length}건 기록`);
+        await pause(100);
+        if (r.window_rmse === null) {
+          stage(2, "active", "21건 미만 · 미판정");
+          return;
+        }
+        stage(
+          2,
+          "done",
+          d.status === "ok" ? "정상 · 기준 이내" : "기준 초과 감지",
+        );
+        if (d.status === "ok") {
+          for (let i = 3; i < 7; i++) stage(i, "", "해당 없음");
+          trust("pass", "정상", "최근 21건 RMSE가 12 mV 이내입니다.");
+          badge("pipeline-badge", "✓ 정상 · 재학습 불필요", "pass");
+          return;
+        }
+        trust(
+          "fail",
+          "감지",
+          "배치 RMSE 기준 초과 · 재학습 결과를 확인합니다.",
+        );
+        await pause(120);
+        stage(3, "done", "실행 확인");
+        trust(
+          "warn",
+          "재학습 중",
+          "최종 응답으로 확인된 완료 단계를 순서대로 표시합니다.",
+        );
+        await pause(120);
+        stage(4, "done", "완료 · 응답 확인");
+        await pause(120);
+        stage(
+          5,
+          d.promoted ? "done" : "failed",
+          `${fmt(d.rmse * 1000)} mV · ${d.promoted ? "통과" : "미통과"}`,
+        );
+        await pause(120);
+        stage(
+          6,
+          d.promoted ? "done" : "failed",
+          d.promoted ? "승격 완료" : "기존 유지",
+        );
+        trust(
+          d.promoted ? "warn" : "fail",
+          d.promoted ? "승격 완료" : "승격 실패",
+          d.promoted
+            ? "Registry 승격 완료 · 현재 서빙 모델은 재검증이 필요합니다. 위 RMSE는 승격 전 측정값입니다."
+            : "게이트를 통과하지 못했습니다. 기존 Production을 유지합니다.",
+        );
+        badge(
+          "pipeline-badge",
+          d.promoted ? "✓ 승격 완료" : "× 승격 실패 · 기존 유지",
+          d.promoted ? "pass" : "fail",
+        );
+        text(
+          "pipeline-note",
+          `게이트 평가 ${fmt(d.rmse * 1000)} mV / 기준 12 mV. Registry 승격은 서빙 캐시 교체를 보장하지 않습니다. 현재 서빙 버전은 /predict 응답으로만 확인합니다.`,
+        );
+      }
+      async function batch(kind) {
+        if (state.busy) return;
+        state.busy = true;
+        buttons();
+        state.run++;
+        resetStages();
+        badge("batch-state", "○ 배치 실행 중", "warn");
+        badge("pipeline-badge", "○ 예측 응답 대기", "warn");
+        trust(
+          "warn",
+          "판정 진행 중",
+          "새 배치 응답을 기다립니다. RMSE는 직전 측정값입니다.",
+        );
+        message("batch-message", "21건 예측 중…");
+        text(
+          "pipeline-note",
+          "로그에서 확인된 단계만 진행 상태로 표시합니다. 최종 응답 수신 후 완료 단계를 순서대로 확인합니다.",
+        );
+        let poll;
+        const entry = {
+          n: state.run,
+          time: clock(),
+          kind: kind === "normal" ? "정상" : "드리프트",
+          rmse: null,
+          result: "실행 중",
+          promotion: "—",
+        };
+        state.history.unshift(entry);
+        renderHistory();
+        try {
+          await refreshLogs();
+          state.logBase = state.logs;
+          state.activeRun = true;
+          stage(0, "active", "수집·예측 요청 중");
+          poll = setInterval(() => refreshLogs(), 1200);
+          const r = await api(
+            "/predict/batch-test",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ kind }),
+            },
+            900000,
+          );
+          state.activeRun = false;
+          clearInterval(poll);
+          if (
+            !Array.isArray(r.actuals) ||
+            r.actuals.length !== r.predictions?.length ||
+            r.predictions.length !== 21 ||
+            ![...r.actuals, ...r.predictions].every(Number.isFinite) ||
+            !(r.window_rmse === null || Number.isFinite(r.window_rmse))
+          )
+            throw new Error(
+              "배치 응답 형식이 맞지 않습니다. actuals와 window_rmse가 추가된 백엔드를 실행하세요.",
+            );
+          if (!["ok", "retrain_triggered"].includes(r.drift_check?.status))
+            throw new Error("서버의 드리프트 판정 결과를 확인할 수 없습니다.");
+          state.batch = r;
+          state.cursors.compare = null;
+          state.cursors.errors = null;
+          renderMetric(r);
+          drawAll();
+          await finishStages(r);
+          entry.rmse = r.window_rmse === null ? null : r.window_rmse * 1000;
+          entry.result =
+            r.window_rmse === null
+              ? "판정 대기"
+              : r.drift_check.status === "ok"
+                ? "정상"
+                : "감지";
+          entry.promotion =
+            r.drift_check.status === "ok"
+              ? "해당 없음"
+              : r.drift_check.promoted
+                ? "승격 완료"
+                : "기존 유지";
+          badge("batch-state", "✓ 실행 완료", "pass");
+          message("batch-message", "21건 비교 완료");
+        } catch (e) {
+          state.activeRun = false;
+          entry.result = "실행 실패";
+          badge("batch-state", "× 실행 실패", "fail");
+          badge("pipeline-badge", "× 결과 확인 불가", "fail");
+          trust(
+            "warn",
+            "판정 불가",
+            "요청 실패로 최신 결과를 확인하지 못했습니다.",
+          );
+          state.stage.forEach((s, i) => {
+            if (s.mode === "active") stage(i, "failed", "처리 결과 확인 불가");
+          });
+          message("batch-message", e.message, true);
+        } finally {
+          clearInterval(poll);
+          state.activeRun = false;
+          renderHistory();
+          await refreshLogs();
+          await health();
+          state.busy = false;
+          buttons();
+        }
+      }
+      function renderHistory() {
+        const body = $("history");
+        body.replaceChildren();
+        for (const r of state.history) {
+          const tr = document.createElement("tr");
+          for (const value of [
+            r.n,
+            r.time,
+            r.kind,
+            r.rmse === null ? "— mV" : fmt(r.rmse) + " mV",
+            r.result,
+            r.promotion,
+          ]) {
+            const td = document.createElement("td");
+            td.textContent = value;
+            tr.append(td);
+          }
+          body.append(tr);
+        }
+      }
+      function logLevel(s) {
+        return /\[OK\]/.test(s)
+          ? "OK"
+          : /\[(WARN|WARNING)\]/.test(s)
+            ? "WARN"
+            : /\[(ERROR|CRITICAL)\]/.test(s)
+              ? "ERROR"
+              : "INFO";
+      }
+      function renderLogs() {
+        const el = $("logs"),
+          filter = $("log-filter").value;
+        el.replaceChildren();
+        const lines = state.logs
+          .split("\n")
+          .filter(Boolean)
+          .filter((l) => filter === "ALL" || logLevel(l) === filter)
+          .slice(-300);
+        if (!lines.length) {
+          el.textContent = "표시할 로그가 없습니다.";
+          return;
+        }
+        for (const line of lines) {
+          const div = document.createElement("div"),
+            level = logLevel(line);
+          div.className = "logline " + level;
+          const b = document.createElement("span");
+          b.className = "loglevel";
+          b.textContent = level;
+          const content = document.createElement("span");
+          content.textContent = line;
+          div.append(b, content);
+          el.append(div);
+        }
+        el.scrollTop = el.scrollHeight;
+      }
+      async function refreshLogs() {
+        if (state.logBusy) return;
+        state.logBusy = true;
+        try {
+          const files = await api("/logs");
+          if (!files.some((f) => f.name === "aiops.log")) {
+            state.logs = "";
+            renderLogs();
+            message("log-message", "aiops.log가 아직 생성되지 않았습니다.");
+            return;
+          }
+          const r = await api("/logs/aiops.log");
+          state.logs = r.content;
+          renderLogs();
+          const fresh = state.logs.startsWith(state.logBase)
+            ? state.logs.slice(state.logBase.length)
+            : state.logs;
+          liveStages(fresh);
+          message(
+            "log-message",
+            `${clock()} 갱신 · 최근 300줄 표시 · 배치 실행 중 자동 갱신`,
+          );
+        } catch (e) {
+          message("log-message", "로그 조회 실패: " + e.message, true);
+        } finally {
+          state.logBusy = false;
+        }
+      }
+      // Canvas chart primitives. Coordinates use device pixels only for rasterization.
+      const charts = {};
+      function chart(
+        id,
+        values,
+        {
+          unit = "V",
+          mini = false,
+          min = null,
+          max = null,
+          xmin = 0,
+          xmax = 1,
+          xunit = "건",
+        } = {},
+      ) {
+        const c = $(id),
+          w = c.clientWidth,
+          h = c.clientHeight,
+          dpr = window.devicePixelRatio || 1;
+        c.width = Math.round(w * dpr);
+        c.height = Math.round(h * dpr);
+        const ctx = c.getContext("2d");
+        ctx.scale(dpr, dpr);
+        let lo = min ?? Infinity,
+          hi = max ?? -Infinity;
+        if (min === null || max === null)
+          for (const v of values) {
+            if (min === null) lo = Math.min(lo, v);
+            if (max === null) hi = Math.max(hi, v);
+          }
+        if (!Number.isFinite(lo)) {
+          lo = 0;
+          hi = 1.4;
+        }
+        if (hi === lo) {
+          lo -= 0.01;
+          hi += 0.01;
+        }
+        const pad = (hi - lo) * 0.12;
+        if (min === null) lo -= pad;
+        if (max === null) hi += pad;
+        const p = mini
+          ? { l: 55, r: 24, t: 7, b: 21 }
+          : { l: 65, r: 30, t: 26, b: 42 };
+        const pw = Math.max(1, w - p.l - p.r),
+          ph = Math.max(1, h - p.t - p.b);
+        const x = (v) => p.l + ((v - xmin) / (xmax - xmin || 1)) * pw,
+          y = (v) => h - p.b - ((v - lo) / (hi - lo)) * ph;
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.font = "12px Consolas, monospace";
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = C.grid;
+        ctx.fillStyle = C.text;
+        if (!mini) {
+          for (let i = 0; i <= 4; i++) {
+            const v = lo + ((hi - lo) * i) / 4,
+              yy = y(v);
+            ctx.beginPath();
+            ctx.moveTo(p.l, yy);
+            ctx.lineTo(w - p.r, yy);
+            ctx.stroke();
+            ctx.textAlign = "right";
+            ctx.fillText(
+              fmt(
+                v,
+                unit === "mV"
+                  ? 1
+                  : Math.min(
+                      5,
+                      Math.max(3, Math.ceil(-Math.log10((hi - lo) / 4)) + 1),
+                    ),
+              ),
+              p.l - 9,
+              yy + 4,
+            );
+          }
+          ctx.textAlign = "left";
+          ctx.fillText(unit, p.l, 15);
+        }
+        for (let i = 0; i <= 5; i++) {
+          const v = xmin + ((xmax - xmin) * i) / 5,
+            xx = x(v);
+          ctx.beginPath();
+          ctx.moveTo(xx, p.t);
+          ctx.lineTo(xx, h - p.b);
+          ctx.stroke();
+          ctx.textAlign = "center";
+          ctx.fillText(
+            fmt(v, xunit === "건" || xunit === "행" ? 0 : 1),
+            xx,
+            h - p.b + 18,
+          );
+        }
+        ctx.textAlign = "right";
+        if (!mini) ctx.fillText(xunit, w - p.r, h - 3);
+        const ch = { ctx, w, h, p, pw, ph, x, y, xmin, xmax, lo, hi };
+        charts[id] = ch;
+        return ch;
+      }
+      function line(ch, points, color, width = 2) {
+        const { ctx } = ch;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(ch.p.l, ch.p.t, ch.pw, ch.ph);
+        ctx.clip();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        points.forEach((p, i) =>
+          i
+            ? ctx.lineTo(ch.x(p[0]), ch.y(p[1]))
+            : ctx.moveTo(ch.x(p[0]), ch.y(p[1])),
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+      function dot(ch, x, y, color, size = 2, square = false) {
+        const ctx = ch.ctx;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        if (square)
+          ctx.rect(ch.x(x) - size, ch.y(y) - size, size * 2, size * 2);
+        else ctx.arc(ch.x(x), ch.y(y), size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      function cursor(ch, x) {
+        const ctx = ch.ctx;
+        ctx.strokeStyle = "#71858e";
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(ch.x(x), ch.p.t);
+        ctx.lineTo(ch.x(x), ch.h - ch.p.b);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      function drawWave() {
+        const rows = state.rows.slice(state.start, state.start + 450),
+          vals = rows.flatMap((r) => [r.v, r.e]);
+        if (state.pred !== null) vals.push(state.pred);
+        const first = rows[0]?.t * 1e12 || 0,
+          last = rows.at(-1)?.t * 1e12 || 1;
+        const ch = chart("wave", vals, {
+          xmin: first,
+          xmax: last,
+          xunit: "ps",
+        });
+        if (!rows.length) return;
+        line(
+          ch,
+          rows.map((r) => [r.t * 1e12, r.v]),
+          C.input,
+        );
+        line(
+          ch,
+          rows.map((r) => [r.t * 1e12, r.e]),
+          C.actual,
+        );
+        rows.forEach((r, i) => {
+          if (i % 3 === 0) dot(ch, r.t * 1e12, r.v, C.input, 2.2);
+        });
+        const end = rows.at(-1);
+        dot(ch, end.t * 1e12, end.e, C.actual, 4);
+        if (state.pred !== null) {
+          const ctx = ch.ctx,
+            x = ch.x(end.t * 1e12),
+            y = ch.y(state.pred);
+          ctx.strokeStyle = C.error;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, ch.y(end.e));
+          ctx.lineTo(x, y);
+          ctx.stroke();
+          ctx.fillStyle = C.error;
+          ctx.beginPath();
+          ctx.moveTo(x, y - 6);
+          ctx.lineTo(x + 6, y);
+          ctx.lineTo(x, y + 6);
+          ctx.lineTo(x - 6, y);
+          ctx.closePath();
+          ctx.fill();
+        }
+        if (state.cursors.wave != null)
+          cursor(ch, rows[state.cursors.wave].t * 1e12);
+      }
+      function drawOverview() {
+        const r = state.rows;
+        let sample = [];
+        if (r.length) {
+          const stride = Math.max(1, Math.floor(r.length / 700));
+          for (let i = 0; i < r.length; i += stride) {
+            let low = i,
+              high = i;
+            for (let j = i; j < Math.min(i + stride, r.length); j++) {
+              if (r[j].v < r[low].v) low = j;
+              if (r[j].v > r[high].v) high = j;
+            }
+            for (const k of [low, high].sort((a, b) => a - b))
+              sample.push([k, r[k].v]);
+          }
+        }
+        const ch = chart(
+          "overview-canvas",
+          sample.map((s) => s[1]),
+          { mini: true, xmin: 1, xmax: r.length || 450, xunit: "행" },
+        );
+        if (!r.length) return;
+        line(
+          ch,
+          sample.map((s) => [s[0] + 1, s[1]]),
+          "#8da9b0",
+          1,
+        );
+        const a = ch.x(state.start + 1),
+          b = ch.x(state.start + 450);
+        ch.ctx.fillStyle = "#006b7819";
+        ch.ctx.fillRect(a, ch.p.t, Math.max(2, b - a), ch.ph);
+        ch.ctx.strokeStyle = C.input;
+        ch.ctx.strokeRect(a, ch.p.t, Math.max(2, b - a), ch.ph);
+      }
+      function drawBatch() {
+        const r = state.batch,
+          vals = r ? [...r.actuals, ...r.predictions] : [];
+        const ch = chart("compare", vals, { xmin: 1, xmax: 21 });
+        const errors = r
+          ? r.actuals.map((v, i) => Math.abs(r.predictions[i] - v) * 1000)
+          : [];
+        const e = chart("errors", errors, {
+          min: 0,
+          max: Math.max(18, ...errors) * 1.15,
+          unit: "mV",
+          xmin: 1,
+          xmax: 21,
+        });
+        e.ctx.strokeStyle = C.error;
+        e.ctx.setLineDash([5, 4]);
+        e.ctx.beginPath();
+        e.ctx.moveTo(e.p.l, e.y(12));
+        e.ctx.lineTo(e.w - e.p.r, e.y(12));
+        e.ctx.stroke();
+        e.ctx.setLineDash([]);
+        e.ctx.fillStyle = C.error;
+        e.ctx.textAlign = "right";
+        e.ctx.fillText("12 mV", e.w - e.p.r, e.y(12) - 6);
+        if (!r) return;
+        $("compare-empty").style.display = "none";
+        $("error-empty").style.display = "none";
+        line(
+          ch,
+          r.actuals.map((v, i) => [i + 1, v]),
+          C.actual,
+        );
+        line(
+          ch,
+          r.predictions.map((v, i) => [i + 1, v]),
+          C.input,
+        );
+        r.actuals.forEach((v, i) => dot(ch, i + 1, v, C.actual, 2.5));
+        r.predictions.forEach((v, i) => dot(ch, i + 1, v, C.input, 2.5));
+        line(
+          e,
+          errors.map((v, i) => [i + 1, v]),
+          C.input,
+        );
+        errors.forEach((v, i) =>
+          dot(e, i + 1, v, v > LIMIT ? C.error : C.input, 3.5, v > LIMIT),
+        );
+        if (state.cursors.compare != null)
+          cursor(ch, state.cursors.compare + 1);
+        if (state.cursors.errors != null) cursor(e, state.cursors.errors + 1);
+      }
+      function drawAll() {
+        drawWave();
+        drawOverview();
+        drawBatch();
+      }
+      function bindTooltip(id, container, key) {
+        const box = $(container),
+          tip = box.querySelector(".tooltip");
+        function show(index, clientX = null, clientY = null) {
+          const r = state.rows.slice(state.start, state.start + 450),
+            batch = state.batch;
+          if ((key === "wave" && !r.length) || (key !== "wave" && !batch))
+            return;
+          const n = key === "wave" ? 450 : 21;
+          index = Math.max(0, Math.min(n - 1, index));
+          state.cursors[key] = index;
+          if (key === "wave") {
+            const p = r[index];
+            tip.textContent =
+              `第 ${state.start + index + 1}행 · ${fmt(p.t * 1e12, 2)} ps\nInput_V ${fmt(p.v, 6)} V\n실제 E ${fmt(p.e, 6)} V\n${index % 3 === 0 ? "모델 입력점 " + (index / 3 + 1) + " / 150" : "모델 입력에서 제외된 행"}${index === 449 && state.pred !== null ? "\n예측 E " + fmt(state.pred, 6) + " V" : ""}`.replace(
+                "第 ",
+                "",
+              );
+            drawWave();
+          } else {
+            tip.textContent = `${index + 1} / 21건\n실제 E ${fmt(batch.actuals[index], 6)} V\n예측 E ${fmt(batch.predictions[index], 6)} V\n절대 오차 ${fmt(Math.abs(batch.predictions[index] - batch.actuals[index]) * 1000)} mV`;
+            drawBatch();
+          }
+          tip.style.display = "block";
+          tip.style.left =
+            Math.max(
+              0,
+              Math.min(
+                (clientX ?? 90) + 14,
+                box.clientWidth - tip.offsetWidth - 4,
+              ),
+            ) + "px";
+          tip.style.top =
+            Math.max(
+              0,
+              Math.min(
+                (clientY ?? 30) + 12,
+                box.clientHeight - tip.offsetHeight - 3,
+              ),
+            ) + "px";
+        }
+        box.addEventListener("pointermove", (ev) => {
+          const ch = charts[id],
+            rect = box.getBoundingClientRect();
+          if (!ch) return;
+          const local = ev.clientX - rect.left;
+          let index = Math.round(((local - ch.p.l) / ch.pw) * 20);
+          if (key === "wave" && state.rows.length) {
+            const target =
+                ch.xmin + ((local - ch.p.l) / ch.pw) * (ch.xmax - ch.xmin),
+              rows = state.rows.slice(state.start, state.start + 450);
+            index = rows.reduce(
+              (best, r, i) =>
+                Math.abs(r.t * 1e12 - target) <
+                Math.abs(rows[best].t * 1e12 - target)
+                  ? i
+                  : best,
+              0,
+            );
+          }
+          show(index, local, ev.clientY - rect.top);
+        });
+        box.addEventListener("pointerleave", () => {
+          tip.style.display = "none";
+          state.cursors[key] = null;
+          key === "wave" ? drawWave() : drawBatch();
+        });
+        box.addEventListener("keydown", (ev) => {
+          if (!["ArrowLeft", "ArrowRight"].includes(ev.key)) return;
+          ev.preventDefault();
+          show((state.cursors[key] ?? 0) + (ev.key === "ArrowRight" ? 1 : -1));
+        });
+        box.addEventListener("blur", () => {
+          tip.style.display = "none";
+        });
+      }
+      $("csv-file").addEventListener("change", selectCSV);
+      $("upload-btn").addEventListener("click", upload);
+      $("predict-btn").addEventListener("click", predict);
+      $("window-slider").addEventListener("input", (e) =>
+        setWindow(e.target.value),
+      );
+      $("start-row").addEventListener("change", (e) =>
+        setWindow(Number(e.target.value) - 1),
+      );
+      $("normal-btn").addEventListener("click", () => batch("normal"));
+      $("drift-btn").addEventListener("click", () => batch("drift"));
+      $("refresh-logs").addEventListener("click", refreshLogs);
+      $("log-filter").addEventListener("change", renderLogs);
+      $("overview-plot").addEventListener("click", (ev) => {
+        if (
+          !state.rows.length ||
+          state.predicting ||
+          state.busy ||
+          state.uploading
+        )
+          return;
+        const ch = charts["overview-canvas"],
+          rect = $("overview-plot").getBoundingClientRect();
+        setWindow(
+          ((ev.clientX - rect.left - ch.p.l) / ch.pw) *
+            (state.rows.length - 1) -
+            224,
+        );
+      });
+      const overviewBox = $("overview-plot");
+      overviewBox.addEventListener("pointermove", (ev) => {
+        if (!state.rows.length) return;
+        const ch = charts["overview-canvas"],
+          rect = overviewBox.getBoundingClientRect(),
+          i = Math.max(
+            0,
+            Math.min(
+              state.rows.length - 1,
+              Math.round(
+                ((ev.clientX - rect.left - ch.p.l) / ch.pw) *
+                  (state.rows.length - 1),
+              ),
+            ),
+          ),
+          r = state.rows[i],
+          tip = overviewBox.querySelector(".tooltip");
+        tip.textContent = `${i + 1}행 · ${fmt(r.t * 1e12, 2)} ps · Input_V ${fmt(r.v, 6)} V`;
+        tip.style.display = "block";
+        tip.style.left =
+          Math.max(
+            0,
+            Math.min(
+              ev.clientX - rect.left + 10,
+              overviewBox.clientWidth - tip.offsetWidth,
+            ),
+          ) + "px";
+        tip.style.top = "0";
+      });
+      overviewBox.addEventListener(
+        "pointerleave",
+        () => (overviewBox.querySelector(".tooltip").style.display = "none"),
+      );
+      bindTooltip("wave", "wave-plot", "wave");
+      bindTooltip("compare", "compare-plot", "compare");
+      bindTooltip("errors", "error-plot", "errors");
+      new ResizeObserver(drawAll).observe(document.querySelector("main"));
+      resetStages();
+      drawAll();
+      buttons();
+      health();
+      loadData();
+      refreshLogs();
+      setInterval(health, 10000);
+
+      $("records-link").addEventListener("click", () => {
+        $("history-panel").open = true;
+        $("operations").open = true;
+      });
+      $("threshold-link").addEventListener("click", () => {
+        $("threshold-help").open = true;
+        document.querySelector(".help").style.display = "block";
+      });
+    </script>
+  </body>
+</html>
